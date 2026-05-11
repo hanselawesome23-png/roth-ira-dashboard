@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roth IRA Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" integrity="sha384-GcFmBPBH2PCkRbKVvHqHBBQ8RBdZ5JHVEGKD8pMTsXNvRtO2kLqANwB3xqSzrep" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2e}
+
+.hdr{background:#1F3864;color:#fff;padding:16px 24px 12px}
+.hdr h1{font-size:18px;font-weight:700;letter-spacing:.5px}
+.hdr-sub{font-size:11px;opacity:.7;margin-top:3px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700}
+.btn:hover{background:rgba(255,255,255,.28)}
+.btn-add{background:#4472C4;border:none;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700}
+.btn-add:hover{background:#2F5496}
+
+.wrap{padding:16px 20px 40px;max-width:1260px}
+
+.input-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;background:#fff;border:1px solid #dde3f0;border-radius:10px;padding:12px 16px;flex-wrap:wrap}
+.input-row label{font-size:12px;font-weight:700;color:#444;white-space:nowrap}
+.input-row input[type=number]{border:2px solid #4472C4;border-radius:6px;padding:5px 10px;font-size:14px;font-weight:700;color:#1F3864;width:120px}
+.sum-pill{margin-left:auto;background:#eef4fb;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:#2F5496}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:14px;background:#fff;border-radius:10px;padding:6px;border:1px solid #dde3f0;flex-wrap:wrap}
+.tab{padding:8px 18px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;color:#666;border:none;background:transparent;transition:all .15s}
+.tab.active{background:#1F3864;color:#fff}
+.tab:hover:not(.active){background:#eef4fb;color:#1F3864}
+
+.panel{display:none}
+.panel.active{display:block}
+
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:16px}
+.card{background:#fff;border-radius:10px;padding:13px 14px;border:1px solid #dde3f0;position:relative;overflow:hidden}
+.card.hold{border-top:3px solid #4472C4}
+.card.watch{border-top:3px solid #9bb3d8}
+.card.cash-card{border-top:3px solid #70AD47}
+.card.custom{border-top:3px solid #ED7D31}
+.badge{position:absolute;top:9px;right:9px;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px}
+.b-hold{background:#deeaf1;color:#2F5496}
+.b-watch{background:#f0f0f0;color:#666}
+.b-cash{background:#e8f5e9;color:#386024}
+.b-new{background:#fce8d5;color:#9e4800}
+.ticker{font-size:17px;font-weight:800;color:#1F3864}
+.cname{font-size:9px;color:#999;margin:2px 0 8px;line-height:1.3}
+.price{font-size:20px;font-weight:700}
+.chg{font-size:11px;font-weight:700;margin-top:2px}
+.pos{color:#22863a}.neg{color:#c0392b}
+.metas{display:flex;justify-content:space-between;margin-top:8px;font-size:10px;color:#888}
+.metas span{font-weight:700;color:#333}
+.est{font-size:10px;margin-top:6px;padding:3px 7px;background:#eef4fb;border-radius:5px;color:#2F5496;font-weight:700}
+.score-row{margin-top:7px;font-size:9px;color:#999;display:flex;align-items:center;gap:4px}
+.sbar{height:5px;border-radius:3px;background:#4472C4;display:inline-block}
+
+/* Charts row */
+.charts{display:grid;grid-template-columns:260px 1fr;gap:14px;margin-bottom:14px}
+.cbox{background:#fff;border-radius:10px;padding:15px;border:1px solid #dde3f0}
+.cbox h3{font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
+.cwrap{position:relative;height:210px}
+
+/* Returns table panel */
+.rtable{width:100%;border-collapse:collapse;font-size:12px}
+.rtable th{background:#1F3864;color:#fff;padding:9px 12px;text-align:left;font-size:11px;font-weight:700}
+.rtable td{padding:8px 12px;border-bottom:1px solid #eee}
+.rtable tr:nth-child(even) td{background:#f7f9fc}
+.rtable tr:hover td{background:#eef4fb}
+.ret-pos{color:#22863a;font-weight:700}
+.ret-neg{color:#c0392b;font-weight:700}
+.ret-na{color:#ccc}
+.hold-row td:first-child{font-weight:800;color:#2F5496}
+.watch-row td:first-child{font-weight:700;color:#444}
+
+/* Sector panel */
+.sector-wrap{display:grid;grid-template-columns:300px 1fr;gap:16px}
+.sector-note{font-size:11px;color:#888;margin-top:8px;line-height:1.5}
+.sector-legend{margin-top:14px}
+.leg-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px solid #f0f0f0}
+.leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.leg-pct{margin-left:auto;font-weight:700;color:#1F3864}
+
+/* Planner */
+.plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.plan-box{border-radius:10px;padding:16px}
+.plan-a{background:#eef4fb;border:2px solid #4472C4}
+.plan-b{background:#f0faf0;border:2px solid #538135}
+.plan-box h4{font-size:13px;font-weight:700;margin-bottom:12px}
+.plan-a h4{color:#1F3864}.plan-b h4{color:#386024}
+.prow{display:flex;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:12px;gap:6px}
+.prow:last-child{border-bottom:none}
+.ptk{font-weight:800;width:44px;flex-shrink:0}
+.ppct{color:#888;width:34px;flex-shrink:0}
+.pamt{font-weight:700;color:#1F3864;width:48px;flex-shrink:0;text-align:right}
+.psh{color:#888;font-size:10px;width:60px;flex-shrink:0;text-align:right}
+.prat{font-size:10px;color:#777;flex:1}
+
+/* Add ticker */
+.add-section{background:#fff;border-radius:10px;padding:16px;border:1px solid #dde3f0;margin-bottom:16px}
+.add-section h3{font-size:12px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+.add-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.add-input{border:2px solid #9bb3d8;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;color:#1F3864;width:110px;text-transform:uppercase}
+.add-input:focus{outline:none;border-color:#4472C4}
+.add-note{font-size:11px;color:#888;flex:1}
+.pending-tickers{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.ptag{background:#fce8d5;color:#9e4800;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:6px}
+.ptag button{background:none;border:none;cursor:pointer;color:#9e4800;font-size:14px;line-height:1;padding:0}
+
+/* Notes */
+.notes{background:#fffbf0;border:1px solid #f0d080;border-radius:10px;padding:14px}
+.notes h3{font-size:11px;font-weight:700;color:#8a6000;margin-bottom:8px;text-transform:uppercase}
+.note{font-size:11px;color:#555;padding:4px 0;border-bottom:1px solid rgba(0,0,0,.05);line-height:1.5}
+.note:last-child{border-bottom:none}
+.note::before{content:"→ ";color:#e0a000;font-weight:700}
+
+.sect-title{font-size:11px;font-weight:700;color:#2F5496;text-transform:uppercase;letter-spacing:1px;margin:18px 0 10px;border-left:3px solid #4472C4;padding-left:8px}
+
+@media(max-width:700px){
+  .charts{grid-template-columns:1fr}
+  .plan-grid{grid-template-columns:1fr}
+  .sector-wrap{grid-template-columns:1fr}
+  .cards{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<h2 class="sr-only">Roth IRA Portfolio Dashboard — real data, multi-year returns, sector allocation, ticker search</h2>
+
+<div class="hdr">
+  <h1>ROTH IRA PORTFOLIO DASHBOARD</h1>
+  <div class="hdr-sub">
+    <span>Last updated: May 11, 2026 &nbsp;·&nbsp; Sources: StockAnalysis.com &amp; Yahoo Finance</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="sendPrompt('Update my Roth IRA dashboard — refresh all prices and returns for VOO, SCHD, QQQM, VXUS, SPMO, SMH, VGT, IBIT, SCHG plus any tickers I have added')">&#8635; Refresh Prices</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="input-row">
+    <label>Total Portfolio Value:</label>
+    <input type="number" id="portVal" value="4500" oninput="onPortChange()">
+    <span style="font-size:11px;color:#888">← Update with your exact total</span>
+    <div class="sum-pill" id="sumPill">Invested: $2,559 &nbsp;|&nbsp; Cash: $1,941 &nbsp;|&nbsp; Deploy: $1,300</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('holdings',this)">Holdings &amp; Watchlist</button>
+    <button class="tab" onclick="showTab('returns',this)">1Y · 3Y · 5Y · 10Y Returns</button>
+    <button class="tab" onclick="showTab('sectors',this)">Sector Allocation</button>
+    <button class="tab" onclick="showTab('planner',this)">$1,300 Planner</button>
+  </div>
+
+  <!-- TAB 1: Holdings -->
+  <div class="panel active" id="tab-holdings">
+    <div class="sect-title">Current Holdings</div>
+    <div class="cards" id="holdCards"></div>
+
+    <div class="sect-title">Watchlist</div>
+    <div class="cards" id="watchCards"></div>
+
+    <div class="sect-title">Portfolio Charts</div>
+    <div class="charts">
+      <div class="cbox">
+        <h3>Allocation (incl. cash)</h3>
+        <div class="cwrap"><canvas id="allocChart"></canvas></div>
+      </div>
+      <div class="cbox">
+        <h3>1-Year Total Return (%) — all tickers</h3>
+        <div class="cwrap"><canvas id="ret1yChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Returns -->
+  <div class="panel" id="tab-returns">
+    <div class="cbox" style="margin-bottom:14px">
+      <h3>Annualized Returns by Time Period</h3>
+      <div style="font-size:11px;color:#888;margin-bottom:12px">All figures are total return (price + dividends reinvested). IBIT &amp; QQQM launched after 2015 — 10Y not available. Data sourced from StockAnalysis.com &amp; Yahoo Finance.</div>
+      <table class="rtable" id="retTable"></table>
+    </div>
+
+    <div class="cbox">
+      <h3>Multi-Year Returns Comparison</h3>
+      <div class="cwrap" style="height:260px"><canvas id="multiRetChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: Sectors -->
+  <div class="panel" id="tab-sectors">
+    <div class="sect-title">Your Invested Portfolio Sector Breakdown</div>
+    <div style="font-size:11px;color:#888;margin-bottom:12px">Based on VOO + SCHD + QQQM holdings only (excludes cash). Sector weights derived from each ETF's underlying holdings.</div>
+    <div class="sector-wrap">
+      <div class="cbox">
+        <h3>Sector Allocation</h3>
+        <div class="cwrap"><canvas id="sectorChart"></canvas></div>
+      </div>
+      <div class="cbox">
+        <h3>Breakdown by ETF contribution</h3>
+        <div class="cwrap" style="height:280px"><canvas id="sectorStack"></canvas></div>
+      </div>
+    </div>
+
+    <div class="sect-title" style="margin-top:16px">Concentration Risk</div>
+    <div class="cbox">
+      <div style="font-size:12px;color:#555;line-height:1.7">
+        <strong>Technology: ~33% of invested portfolio.</strong> You have meaningful tech concentration — VOO contributes 28% tech weight, QQQM is 51% tech. This is fine for long-term growth but creates correlation risk: if tech corrects, all three holdings move together.<br><br>
+        <strong>Healthcare: ~11%</strong> — well-represented via VOO &amp; SCHD. SCHD also gives you Energy (13%) and Consumer Staples (15%) exposure that QQQM lacks entirely, acting as a natural hedge.<br><br>
+        <strong>What adding VGT/SMH/SCHG would do:</strong> Push technology to 40–50% of invested portfolio. High-conviction growth play — just know the volatility comes with it.
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: Planner -->
+  <div class="panel" id="tab-planner">
+    <div style="font-size:12px;color:#888;margin-bottom:12px">Deploy amount: <strong id="deployAmt">$1,300</strong> &nbsp;·&nbsp; Share counts update live with prices above.</div>
+    <div class="plan-grid">
+      <div class="plan-box plan-a">
+        <h4>Scenario A — Concentrated Growth (Tech-Heavy)</h4>
+        <div class="prow"><span class="ptk">SMH</span><span class="ppct">40%</span><span class="pamt">$520</span><span class="psh" id="sa1"></span><span class="prat">AI/chip supercycle — 70% 1Y, 26% ann since inception</span></div>
+        <div class="prow"><span class="ptk">QQQM</span><span class="ppct">35%</span><span class="pamt">$455</span><span class="psh" id="sa2"></span><span class="prat">Add to existing position — Nasdaq 100 core, 40% 1Y</span></div>
+        <div class="prow"><span class="ptk">SCHG</span><span class="ppct">25%</span><span class="pamt">$325</span><span class="psh" id="sa3"></span><span class="prat">Large-cap growth complement, lowest fee at 0.04%</span></div>
+      </div>
+      <div class="plan-box plan-b">
+        <h4>Scenario B — Balanced Diversification</h4>
+        <div class="prow"><span class="ptk">VGT</span><span class="ppct">30%</span><span class="pamt">$390</span><span class="psh" id="sb1"></span><span class="prat">Broad tech (NVDA+AAPL+MSFT), 22.6% ann 10Y return</span></div>
+        <div class="prow"><span class="ptk">SPMO</span><span class="ppct">30%</span><span class="pamt">$390</span><span class="psh" id="sb2"></span><span class="prat">Momentum factor — 49% 1Y, systematic leader exposure</span></div>
+        <div class="prow"><span class="ptk">VXUS</span><span class="ppct">25%</span><span class="pamt">$325</span><span class="psh" id="sb3"></span><span class="prat">International hedge — 36% 1Y, lowers US correlation</span></div>
+        <div class="prow"><span class="ptk">SCHG</span><span class="ppct">15%</span><span class="pamt">$195</span><span class="psh" id="sb4"></span><span class="prat">Growth tilt to balance SCHD's defensive dividend focus</span></div>
+      </div>
+    </div>
+
+    <div class="sect-title" style="margin-top:16px">Growth Projection (Roth IRA — tax-free compounding)</div>
+    <div class="cbox">
+      <h3>$1,300 invested today — projected value at assumed annual returns</h3>
+      <div class="cwrap" style="height:240px"><canvas id="projChart"></canvas></div>
+      <div style="font-size:10px;color:#aaa;margin-top:8px">Scenario A assumes 22% avg annual return. Scenario B assumes 15%. These are illustrative projections based on historical performance — not guarantees. All growth inside Roth IRA is 100% tax-free.</div>
+    </div>
+  </div>
+
+  <!-- Add Ticker -->
+  <div class="sect-title" style="margin-top:6px">Add Tickers to Track</div>
+  <div class="add-section">
+    <h3>Custom Ticker Watchlist</h3>
+    <div class="add-row">
+      <input class="add-input" type="text" id="tickerInput" placeholder="e.g. NVDA" maxlength="8">
+      <button class="btn-add" onclick="addTicker()">+ Add Ticker</button>
+      <span class="add-note">Type any stock or ETF ticker and add it. Then click <strong>Refresh Prices</strong> in the header — I'll pull the data and update your dashboard.</span>
+    </div>
+    <div class="pending-tickers" id="pendingList"></div>
+  </div>
+
+  <!-- Notes -->
+  <div class="sect-title">Advisor Notes</div>
+  <div class="notes">
+    <h3>Long-Term Roth IRA Strategy — han</h3>
+    <div class="note">Tech concentration is already high at ~33% of invested assets. Adding SMH, VGT, or SCHG deliberately increases this — completely valid for long-term growth, just be prepared for 20–30% drawdowns during corrections.</div>
+    <div class="note">VGT's 10-year annualized return of 22.6% is exceptional. It holds NVDA, AAPL, and MSFT as its top 3 — giving you the Magnificent 7 core without over-concentrating in semiconductors alone.</div>
+    <div class="note">IBIT (Bitcoin ETF) is down 16.88% over the past year. High variance asset — treat like a speculation, not a core holding. Never let it exceed 5% of your Roth.</div>
+    <div class="note">SCHD's 3Y annualized return of 4.2% looks weak vs growth names, but dividends inside a Roth grow 100% tax-free. Reinvested compounding over 10+ years is where SCHD earns its place.</div>
+    <div class="note">43% cash is your biggest opportunity. Even Scenario B's diversified approach at 15% avg annual returns turns $1,300 into ~$5,200 in 10 years — tax-free inside your Roth.</div>
+    <div class="note">Add tickers in the box above, then click Refresh Prices — I'll pull real data for any stock or ETF and update this dashboard.</div>
+  </div>
+
+</div>
+
+<script>
+const TICKERS = [
+  {ticker:"VOO", name:"Vanguard S&P 500 ETF",         type:"hold", alloc:.2142,
+   price:678.04, chg:.82,  r1:33.0,  r3:8.9,  r5:14.5, r10:13.1,
+   yld:1.30, exp:.03, score:7, pe:27.0, beta:1.00,
+   sect:{Technology:28,Healthcare:13,Financials:13,"Cons. Disc.":10,Industrials:9,"Comm. Services":9,Other:18}},
+  {ticker:"SCHD",name:"Schwab US Dividend ETF",        type:"hold", alloc:.1298,
+   price:31.62, chg:.25,  r1:17.5,  r3:4.2,  r5:11.1, r10:11.0,
+   yld:3.50, exp:.06, score:6, pe:18.5, beta:.75,
+   sect:{Financials:20,Healthcare:15,"Cons. Staples":15,Energy:13,Industrials:11,Technology:10,Other:16}},
+  {ticker:"QQQM",name:"Invesco NASDAQ 100 ETF",        type:"hold", alloc:.2246,
+   price:293.50,chg:.23,  r1:40.17, r3:12.0, r5:16.36,r10:null,
+   yld:.60,  exp:.15, score:8, pe:33.0, beta:1.15,
+   sect:{Technology:51,"Cons. Disc.":18,"Comm. Services":9,Healthcare:7,Industrials:4,Other:11}},
+  {ticker:"VXUS",name:"Vanguard Total Intl Stock ETF", type:"watch",alloc:0,
+   price:85.43, chg:1.40, r1:36.07, r3:6.5,  r5:9.2,  r10:5.8,
+   yld:3.00, exp:.07, score:7, pe:14.0, beta:.85,
+   sect:{Financials:22,Technology:15,Industrials:12,"Cons. Disc.":11,Healthcare:9,Other:31}},
+  {ticker:"SPMO",name:"Invesco S&P 500 Momentum ETF",  type:"watch",alloc:0,
+   price:143.81,chg:3.24, r1:48.80, r3:18.5, r5:18.0, r10:null,
+   yld:.30,  exp:.13, score:8, pe:30.0, beta:1.05,
+   sect:{Technology:38,Financials:15,"Cons. Disc.":12,Industrials:10,"Comm. Services":8,Other:17}},
+  {ticker:"SMH", name:"VanEck Semiconductor ETF",      type:"watch",alloc:0,
+   price:566.54,chg:4.90, r1:69.71, r3:28.0, r5:32.0, r10:26.17,
+   yld:.29,  exp:.35, score:10,pe:43.45,beta:1.56,
+   sect:{Technology:100}},
+  {ticker:"VGT", name:"Vanguard Info Technology ETF",  type:"watch",alloc:0,
+   price:719.03,chg:2.68, r1:23.06, r3:15.0, r5:20.0, r10:22.6,
+   yld:.42,  exp:.09, score:9, pe:37.42,beta:1.28,
+   sect:{Technology:100}},
+  {ticker:"IBIT",name:"iShares Bitcoin Trust ETF",     type:"watch",alloc:0,
+   price:46.12, chg:1.59, r1:-16.88,r3:null, r5:null, r10:null,
+   yld:0,    exp:.25, score:5, pe:null, beta:1.80,
+   sect:{"Digital Assets":100}},
+  {ticker:"SCHG",name:"Schwab US Large-Cap Growth ETF",type:"watch",alloc:0,
+   price:34.12, chg:.68,  r1:32.95, r3:10.0, r5:15.0, r10:15.2,
+   yld:.10,  exp:.04, score:8, pe:30.0, beta:1.10,
+   sect:{Technology:45,"Cons. Disc.":15,"Comm. Services":12,Healthcare:8,Industrials:5,Other:15}},
+];
+
+const CUSTOM = [];
+const CHARTS = {};
+
+function portVal(){ return parseFloat(document.getElementById('portVal').value)||4500; }
+
+function fmt(v,pre='$'){ return pre+v.toLocaleString('en-US',{maximumFractionDigits:0}); }
+function fmtPct(v){ if(v==null) return '<span class="ret-na">N/A</span>';
+  return `<span class="${v>=0?'ret-pos':'ret-neg'}">${v>=0?'+':''}${v.toFixed(1)}%</span>`; }
+
+function onPortChange(){
+  const t=portVal(), inv=t*(1-.4313), cash=t*.4313;
+  document.getElementById('sumPill').textContent =
+    `Invested: ${fmt(inv)} | Cash: ${fmt(cash)} | Deploy: $1,300`;
+  renderCards();
+  updateShares();
+}
+
+function makeCard(d, total){
+  const isHold=d.type==='hold', isCustom=d.type==='custom';
+  const chgCls=d.chg>=0?'pos':'neg';
+  const chgStr=d.chg>=0?`▲ ${d.chg.toFixed(2)}%`:`▼ ${Math.abs(d.chg).toFixed(2)}%`;
+  const estVal=isHold?`<div class="est">Est. Value: ${fmt(total*d.alloc)}</div>`:'';
+  const badgeCls=isHold?'b-hold':isCustom?'b-new':'b-watch';
+  const badgeTxt=isHold?'HOLD':isCustom?'NEW':'WATCH';
+  const scoreW=Math.round((d.score/10)*60);
+  return `<div class="card ${isHold?'hold':isCustom?'custom':'watch'}">
+    <span class="badge ${badgeCls}">${badgeTxt}</span>
+    <div class="ticker">${d.ticker}</div>
+    <div class="cname">${d.name}</div>
+    <div class="price">$${d.price.toFixed(2)}</div>
+    <div class="chg ${chgCls}">${chgStr} today</div>
+    <div class="metas">
+      <div>Yield<span>${d.yld.toFixed(1)}%</span></div>
+      <div>Fee<span>${d.exp.toFixed(2)}%</span></div>
+      <div>Beta<span>${d.beta.toFixed(2)}</span></div>
+    </div>
+    ${estVal}
+    <div class="score-row">Score <span class="sbar" style="width:${scoreW}px"></span> <strong style="color:#1F3864">${d.score}/10</strong></div>
+  </div>`;
+}
+
+function renderCards(){
+  const t=portVal();
+  const all=TICKERS.concat(CUSTOM);
+  document.getElementById('holdCards').innerHTML=
+    all.filter(d=>d.type==='hold').map(d=>makeCard(d,t)).join('');
+  document.getElementById('watchCards').innerHTML=
+    all.filter(d=>d.type!=='hold').map(d=>makeCard(d,t)).join('');
+}
+
+function buildAllocChart(){
+  const ctx=document.getElementById('allocChart').getContext('2d');
+  if(CHARTS.alloc) CHARTS.alloc.destroy();
+  CHARTS.alloc=new Chart(ctx,{type:'doughnut',data:{
+    labels:['VOO','SCHD','QQQM','Cash'],
+    datasets:[{data:[21.42,12.98,22.46,43.14],
+      backgroundColor:['#4472C4','#70AD47','#ED7D31','#A5A5A5'],
+      borderWidth:2,borderColor:'#fff'}]
+  },options:{plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:6}}},
+    cutout:'62%',maintainAspectRatio:false}});
+}
+
+function build1yChart(){
+  const ctx=document.getElementById('ret1yChart').getContext('2d');
+  if(CHARTS.r1y) CHARTS.r1y.destroy();
+  const all=TICKERS.concat(CUSTOM.filter(c=>c.r1!=null));
+  CHARTS.r1y=new Chart(ctx,{type:'bar',data:{
+    labels:all.map(d=>d.ticker),
+    datasets:[{data:all.map(d=>d.r1),
+      backgroundColor:all.map(d=>d.r1>=0?'#4472C4':'#C0392B'),
+      borderRadius:4,label:'1Y Return %'}]
+  },options:{plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:c=>` ${c.raw.toFixed(1)}%`}}},
+    scales:{y:{ticks:{callback:v=>v+'%',font:{size:9}},grid:{color:'#f0f0f0'}},
+      x:{ticks:{font:{size:10,weight:'700'}}}},
+    maintainAspectRatio:false}});
+}
+
+function buildRetTable(){
+  const all=TICKERS.concat(CUSTOM);
+  const rows=all.map(d=>`
+    <tr class="${d.type==='hold'?'hold-row':'watch-row'}">
+      <td>${d.ticker}</td>
+      <td style="color:#888;font-size:10px">${d.name}</td>
+      <td>${fmtPct(d.r1)}</td>
+      <td>${fmtPct(d.r3)}</td>
+      <td>${fmtPct(d.r5)}</td>
+      <td>${fmtPct(d.r10)}</td>
+      <td style="font-size:11px;color:#888">${d.exp.toFixed(2)}%</td>
+    </tr>`).join('');
+  document.getElementById('retTable').innerHTML=`
+    <thead><tr>
+      <th>Ticker</th><th>Name</th>
+      <th>1Y Return</th><th>3Y Ann.</th><th>5Y Ann.</th><th>10Y Ann.</th>
+      <th>Expense</th>
+    </tr></thead><tbody>${rows}</tbody>`;
+}
+
+function buildMultiRetChart(){
+  const ctx=document.getElementById('multiRetChart').getContext('2d');
+  if(CHARTS.multi) CHARTS.multi.destroy();
+  const all=TICKERS.concat(CUSTOM);
+  const colors=['#4472C4','#70AD47','#ED7D31','#FF0000','#9B59B6','#1ABC9C','#E67E22','#95A5A6','#2ECC71'];
+  CHARTS.multi=new Chart(ctx,{type:'bar',data:{
+    labels:['1Y Return','3Y Annualized','5Y Annualized','10Y Annualized'],
+    datasets:all.map((d,i)=>({
+      label:d.ticker,
+      data:[d.r1,d.r3,d.r5,d.r10],
+      backgroundColor:colors[i%colors.length],
+      borderRadius:3
+    }))
+  },options:{plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}}},
+    scales:{y:{ticks:{callback:v=>v==null?'':v+'%',font:{size:9}},grid:{color:'#f0f0f0'}},
+      x:{ticks:{font:{size:10}}}},
+    maintainAspectRatio:false}});
+}
+
+const SECTOR_COLORS={
+  Technology:'#4472C4',Healthcare:'#70AD47',Financials:'#ED7D31',"Cons. Disc.":'#FF0000',
+  Industrials:'#9B59B6',"Comm. Services":'#1ABC9C',"Cons. Staples":'#E67E22',
+  Energy:'#F39C12',Other:'#BDC3C7',"Digital Assets":'#F7CA18',
+  "Cons. Growth":'#3498DB',Real_Estate:'#E74C3C'
+};
+
+function buildSectorChart(){
+  const holds=TICKERS.filter(d=>d.type==='hold');
+  const totInvested=holds.reduce((s,d)=>s+d.alloc,0);
+  const agg={};
+  holds.forEach(d=>{
+    const w=d.alloc/totInvested;
+    Object.entries(d.sect).forEach(([s,pct])=>{
+      agg[s]=(agg[s]||0)+w*pct;
+    });
+  });
+  const labels=Object.keys(agg).sort((a,b)=>agg[b]-agg[a]);
+  const vals=labels.map(l=>parseFloat(agg[l].toFixed(1)));
+  const bgColors=labels.map(l=>SECTOR_COLORS[l]||'#95A5A6');
+
+  const ctx=document.getElementById('sectorChart').getContext('2d');
+  if(CHARTS.sect) CHARTS.sect.destroy();
+  CHARTS.sect=new Chart(ctx,{type:'doughnut',data:{
+    labels,datasets:[{data:vals,backgroundColor:bgColors,borderWidth:2,borderColor:'#fff'}]
+  },options:{plugins:{legend:{position:'bottom',labels:{font:{size:9},padding:5}}},
+    cutout:'55%',maintainAspectRatio:false,
+    plugins:{tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw.toFixed(1)}%`}}}}});
+}
+
+function buildSectorStack(){
+  const holds=TICKERS.filter(d=>d.type==='hold');
+  const totInvested=holds.reduce((s,d)=>s+d.alloc,0);
+  const allSects=new Set();
+  holds.forEach(d=>Object.keys(d.sect).forEach(s=>allSects.add(s)));
+  const sects=Array.from(allSects);
+  const tickerColors=['#4472C4','#70AD47','#ED7D31'];
+
+  const ctx=document.getElementById('sectorStack').getContext('2d');
+  if(CHARTS.stack) CHARTS.stack.destroy();
+  CHARTS.stack=new Chart(ctx,{type:'bar',data:{
+    labels:sects,
+    datasets:holds.map((d,i)=>({
+      label:d.ticker,
+      data:sects.map(s=>{
+        const w=d.alloc/totInvested;
+        return parseFloat(((d.sect[s]||0)*w).toFixed(1));
+      }),
+      backgroundColor:tickerColors[i],
+      borderRadius:2
+    }))
+  },options:{plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:12}}},
+    scales:{x:{stacked:true,ticks:{font:{size:9}}},
+      y:{stacked:true,ticks:{callback:v=>v+'%',font:{size:9}},grid:{color:'#f0f0f0'}}},
+    maintainAspectRatio:false}});
+}
+
+function buildProjChart(){
+  const ctx=document.getElementById('projChart').getContext('2d');
+  if(CHARTS.proj) CHARTS.proj.destroy();
+  const years=[0,1,2,3,5,7,10,15,20];
+  const scA=years.map(y=>parseFloat((1300*Math.pow(1.22,y)).toFixed(0)));
+  const scB=years.map(y=>parseFloat((1300*Math.pow(1.15,y)).toFixed(0)));
+  const spy=years.map(y=>parseFloat((1300*Math.pow(1.13,y)).toFixed(0)));
+  CHARTS.proj=new Chart(ctx,{type:'line',data:{
+    labels:years.map(y=>y===0?'Today':`Yr ${y}`),
+    datasets:[
+      {label:'Scenario A (22% avg)',data:scA,borderColor:'#4472C4',backgroundColor:'rgba(68,114,196,.1)',tension:.4,fill:true,borderWidth:2.5},
+      {label:'Scenario B (15% avg)',data:scB,borderColor:'#70AD47',backgroundColor:'rgba(112,173,71,.1)',tension:.4,fill:true,borderWidth:2.5},
+      {label:'S&P 500 baseline (13%)',data:spy,borderColor:'#A5A5A5',borderDash:[5,5],tension:.4,borderWidth:1.5}
+    ]
+  },options:{plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:14}},
+    tooltip:{callbacks:{label:c=>`${c.dataset.label}: $${c.raw.toLocaleString()}`}}},
+    scales:{y:{ticks:{callback:v=>'$'+v.toLocaleString(),font:{size:9}},grid:{color:'#f0f0f0'}},
+      x:{ticks:{font:{size:10}}}},
+    maintainAspectRatio:false}});
+}
+
+function updateShares(){
+  const sm=TICKERS.find(d=>d.ticker==='SMH'), qq=TICKERS.find(d=>d.ticker==='QQQM'),
+        sc=TICKERS.find(d=>d.ticker==='SCHG'), vg=TICKERS.find(d=>d.ticker==='VGT'),
+        sp=TICKERS.find(d=>d.ticker==='SPMO'), vx=TICKERS.find(d=>d.ticker==='VXUS');
+  const sh=(amt,p)=>p?`~${(amt/p).toFixed(p>100?2:1)} sh`:'—';
+  document.getElementById('sa1').textContent=sh(520,sm?.price);
+  document.getElementById('sa2').textContent=sh(455,qq?.price);
+  document.getElementById('sa3').textContent=sh(325,sc?.price);
+  document.getElementById('sb1').textContent=sh(390,vg?.price);
+  document.getElementById('sb2').textContent=sh(390,sp?.price);
+  document.getElementById('sb3').textContent=sh(325,vx?.price);
+  document.getElementById('sb4').textContent=sh(195,sc?.price);
+}
+
+// Tab logic
+function showTab(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// Add ticker
+function addTicker(){
+  const input=document.getElementById('tickerInput');
+  const raw=input.value.trim().toUpperCase();
+  if(!raw) return;
+  if(TICKERS.find(d=>d.ticker===raw)||CUSTOM.find(d=>d.ticker===raw)){
+    alert(`${raw} is already in your dashboard.`); input.value=''; return;
+  }
+  CUSTOM.push({ticker:raw,name:'Pending — click Refresh',type:'custom',alloc:0,
+    price:0,chg:0,r1:null,r3:null,r5:null,r10:null,yld:0,exp:0,score:0,pe:null,beta:0,sect:{}});
+  input.value='';
+  renderCards();
+  buildRetTable();
+  renderPendingTags();
+  sendPrompt(`Add ${raw} to my Roth IRA dashboard — pull current price, 1Y/3Y/5Y/10Y returns, dividend yield, expense ratio, and sector allocation`);
+}
+
+function renderPendingTags(){
+  document.getElementById('pendingList').innerHTML=CUSTOM.map((d,i)=>
+    `<span class="ptag">${d.ticker} <button onclick="removeTicker(${i})">×</button></span>`
+  ).join('');
+}
+
+function removeTicker(i){
+  CUSTOM.splice(i,1);
+  renderCards();
+  buildRetTable();
+  renderPendingTags();
+}
+
+// Init
+renderCards();
+onPortChange();
+buildAllocChart();
+build1yChart();
+buildRetTable();
+buildMultiRetChart();
+buildSectorChart();
+buildSectorStack();
+buildProjChart();
+updateShares();
+</script>
+</body>
+</html>
