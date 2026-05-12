@@ -168,7 +168,7 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
   <div class="hdr-sub">
     <span id="lastUpdated">Fetching live data…</span>
     <div style="display:flex;gap:8px">
-      <button class="btn" onclick="refreshAll()">&#8635; Refresh Prices</button>
+      <button class="btn" id="refreshBtn" onclick="refreshAll()">&#8635; Refresh Prices</button>
     </div>
   </div>
 </div>
@@ -398,6 +398,7 @@ const DEFAULT_LIST = [
 
 // ─── localStorage ────────────────────────────────────────────────────────────
 const STORAGE_KEY = 'roth_dashboard_v4';
+const SETTINGS_KEY = 'roth_dashboard_settings_v1';
 
 function loadList() {
   try {
@@ -408,6 +409,36 @@ function loadList() {
 function saveList() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tickerList)); } catch {}
 }
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      portVal: document.getElementById('portVal')?.value || '4500',
+      planner: {
+        sa1p: document.getElementById('sa1p')?.value,
+        sa2p: document.getElementById('sa2p')?.value,
+        sa3p: document.getElementById('sa3p')?.value,
+        sb1p: document.getElementById('sb1p')?.value,
+        sb2p: document.getElementById('sb2p')?.value,
+        sb3p: document.getElementById('sb3p')?.value,
+        sb4p: document.getElementById('sb4p')?.value,
+      }
+    }));
+  } catch {}
+}
+function applySavedSettings() {
+  const settings = loadSettings();
+  if (settings.portVal != null) document.getElementById('portVal').value = settings.portVal;
+  Object.entries(settings.planner || {}).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el && value != null) el.value = value;
+  });
+}
 
 // ─── State ───────────────────────────────────────────────────────────────────
 let tickerList = loadList();
@@ -415,6 +446,7 @@ let liveData   = {};   // {VOO: {price, chg, beta, pe, yld, r1, r3, r5, r10, div
 let newsFeed   = [];
 let newsLoaded = false;
 let CHARTS     = {};
+let refreshRun = 0;
 
 // Mark all tickers as loading before first fetch
 tickerList.forEach(t => { liveData[t.ticker] = {loading: true}; });
@@ -424,6 +456,7 @@ function portVal() { return parseFloat(document.getElementById('portVal').value)
 function deployAmt() { return Math.round(portVal() * (1300 / 4500)); }
 function fmt(v) { return '$' + Math.round(v).toLocaleString('en-US'); }
 function fmtPct(v) {
+  if (v === 'unavailable') return '<span class="ret-na">Data unavailable</span>';
   if (v == null || isNaN(v)) return '<span class="ret-na">N/A</span>';
   const n = parseFloat(v);
   return `<span class="${n >= 0 ? 'ret-pos' : 'ret-neg'}">${n >= 0 ? '+' : ''}${n.toFixed(1)}%</span>`;
@@ -467,6 +500,8 @@ function getAllTickers() {
       exDate:   live.exDate,
       payDate:  live.payDate,
       loading:  !!live.loading,
+      unavailable: !!live.unavailable,
+      divUnavailable: !!live.divUnavailable,
     };
   });
 }
@@ -479,11 +514,16 @@ const PROXIES = [
 ];
 
 async function yfFetch(url) {
+  const bust = `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}`;
   for (const makeUrl of PROXIES) {
     try {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 9000);
-      const res = await fetch(makeUrl(url), {signal: ctrl.signal});
+      const res = await fetch(makeUrl(bust), {
+        cache: 'no-store',
+        headers: {'Cache-Control': 'no-cache', 'Pragma': 'no-cache'},
+        signal: ctrl.signal
+      });
       clearTimeout(timer);
       if (res.ok) {
         const text = await res.text();
@@ -498,17 +538,36 @@ async function fetchQuotes(tickers) {
   if (!tickers.length) return;
   const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers.join(',')}`;
   const data = await yfFetch(url);
-  if (!data?.quoteResponse?.result) return false;
+  if (!data?.quoteResponse?.result) {
+    tickers.forEach(t => {
+      liveData[t] = {
+        ...(liveData[t] || {}),
+        price: null, chg: null, beta: null, pe: null, yld: null,
+        loading: false, unavailable: true
+      };
+    });
+    return false;
+  }
+  const returned = new Set();
   data.quoteResponse.result.forEach(q => {
+    returned.add(q.symbol);
     if (!liveData[q.symbol]) liveData[q.symbol] = {};
     const d = liveData[q.symbol];
-    d.price   = q.regularMarketPrice          ?? d.price;
-    d.chg     = q.regularMarketChangePercent  ?? d.chg ?? 0;
-    d.beta    = q.beta                        ?? d.beta;
+    d.price   = q.regularMarketPrice          ?? null;
+    d.chg     = q.regularMarketChangePercent  ?? null;
+    d.beta    = q.beta                        ?? null;
     d.pe      = q.trailingPE                  ?? null;
-    d.yld     = q.trailingAnnualDividendYield != null ? +(q.trailingAnnualDividendYield * 100).toFixed(2) : (d.yld ?? 0);
+    d.yld     = q.trailingAnnualDividendYield != null ? +(q.trailingAnnualDividendYield * 100).toFixed(2) : null;
     d.name    = q.longName || q.shortName     || d.name;
     d.loading = false;
+    d.unavailable = d.price == null;
+  });
+  tickers.filter(t => !returned.has(t)).forEach(t => {
+    liveData[t] = {
+      ...(liveData[t] || {}),
+      price: null, chg: null, beta: null, pe: null, yld: null,
+      loading: false, unavailable: true
+    };
   });
   return true;
 }
@@ -516,11 +575,11 @@ async function fetchQuotes(tickers) {
 async function fetchHistoricalReturn(ticker) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1mo&range=10y`;
   const data = await yfFetch(url);
-  if (!data?.chart?.result?.[0]) return {};
+  if (!data?.chart?.result?.[0]) return {r1: 'unavailable', r3: 'unavailable', r5: 'unavailable', r10: 'unavailable'};
   const res     = data.chart.result[0];
   const closes  = res.indicators?.adjclose?.[0]?.adjclose || res.indicators?.quote?.[0]?.close || [];
   const valid   = closes.map((v, i) => ({v, i})).filter(x => x.v != null);
-  if (valid.length < 2) return {};
+  if (valid.length < 2) return {r1: 'unavailable', r3: 'unavailable', r5: 'unavailable', r10: 'unavailable'};
   const last    = valid[valid.length - 1].v;
   const n       = valid.length;
 
@@ -545,7 +604,7 @@ async function fetchHistoricalReturn(ticker) {
 async function fetchDividend(ticker) {
   const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=summaryDetail,calendarEvents`;
   const data = await yfFetch(url);
-  if (!data?.quoteSummary?.result?.[0]) return {divRate: null, divYield: null, divFreq: null, exDate: null, payDate: null};
+  if (!data?.quoteSummary?.result?.[0]) return {divRate: undefined, divYield: null, divFreq: null, exDate: null, payDate: null, divUnavailable: true};
   const sd = data.quoteSummary.result[0].summaryDetail   || {};
   const ce = data.quoteSummary.result[0].calendarEvents  || {};
   const rate = sd.dividendRate?.raw ?? null;
@@ -569,6 +628,7 @@ async function fetchDividend(ticker) {
     divFreq:  freq,
     exDate:   sd.exDividendDate?.fmt  || null,
     payDate:  ce.dividendDate?.fmt    || null,
+    divUnavailable: false,
   };
 }
 
@@ -658,6 +718,8 @@ function renderCards() {
 function divCell(d) {
   if (d.loading)
     return '<td colspan="4" style="color:#aaa;font-size:11px;font-style:italic">Loading dividend data…</td>';
+  if (d.divUnavailable)
+    return '<td colspan="4" class="div-na">Data unavailable</td>';
   if (d.divRate === undefined)
     return '<td colspan="4" class="ret-na">—</td>';
   if (!d.divRate)
@@ -700,6 +762,9 @@ const SECTOR_COLORS = {
   Industrials:'#9B59B6',"Comm. Services":'#1ABC9C',"Cons. Staples":'#E67E22',
   Energy:'#F39C12',Other:'#BDC3C7',"Digital Assets":'#F7CA18'
 };
+function chartVal(v) {
+  return typeof v === 'number' && isFinite(v) ? v : null;
+}
 
 function buildAllocChart() {
   const holds = getAllTickers().filter(d => d.type === 'hold' && d.alloc > 0);
@@ -721,12 +786,12 @@ function buildAllocChart() {
 function build1yChart() {
   const ctx = document.getElementById('ret1yChart').getContext('2d');
   if (CHARTS.r1y) CHARTS.r1y.destroy();
-  const all = getAllTickers().filter(d => d.r1 != null);
+  const all = getAllTickers().filter(d => chartVal(d.r1) != null);
   if (!all.length) return;
   CHARTS.r1y = new Chart(ctx, {type:'bar', data:{
     labels: all.map(d => d.ticker),
     datasets:[{
-      data: all.map(d => d.r1),
+      data: all.map(d => chartVal(d.r1)),
       backgroundColor: all.map(d => d.r1 >= 0 ? '#4472C4' : '#C0392B'),
       borderRadius:4, label:'1Y Return %'
     }]
@@ -746,7 +811,7 @@ function buildMultiRetChart() {
     labels:['1Y Return','3Y Annualized','5Y Annualized','10Y Annualized'],
     datasets: all.map((d, i) => ({
       label: d.ticker,
-      data: [d.r1, d.r3, d.r5, d.r10],
+      data: [chartVal(d.r1), chartVal(d.r3), chartVal(d.r5), chartVal(d.r10)],
       backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
       borderRadius:3
     }))
@@ -861,6 +926,7 @@ function updatePlan(scenario) {
   totalEl.textContent = `Total: ${+total.toFixed(1)}% (Remaining: ${Math.max(0, +(100 - total).toFixed(1))}%)`;
   totalEl.className   = 'plan-total ' + (over ? 'plan-over' : 'plan-ok');
   errEl.style.display = over ? 'block' : 'none';
+  saveSettings();
 }
 
 // ─── News ─────────────────────────────────────────────────────────────────────
@@ -944,6 +1010,8 @@ function renderPendingTags() {
 async function fetchSingleTicker(ticker) {
   const ok = await fetchQuotes([ticker]);
   renderCards();
+  buildRetTable();
+  rebuildAllCharts();
   if (ok) {
     const [hist, div] = await Promise.all([
       fetchHistoricalReturn(ticker),
@@ -958,18 +1026,27 @@ async function fetchSingleTicker(ticker) {
 }
 
 async function refreshAll() {
+  const run = ++refreshRun;
   const tickers = tickerList.map(t => t.ticker);
-  if (!tickers.length) return;
+  const refreshBtn = document.getElementById('refreshBtn');
+  saveSettings();
+  if (!tickers.length) {
+    setStatus('No tickers selected. Add a ticker to fetch live data.');
+    return;
+  }
+  if (refreshBtn) refreshBtn.disabled = true;
 
   setStatus('Fetching live prices…');
   tickers.forEach(t => {
     if (!liveData[t]) liveData[t] = {};
     liveData[t].loading = true;
+    liveData[t].unavailable = false;
   });
   renderCards();
 
   // Step 1: batch quote fetch
   const ok = await fetchQuotes(tickers);
+  if (run !== refreshRun) return;
   if (!ok) {
     setStatus('⚠ Price fetch failed. Check your connection and try refreshing.');
   } else {
@@ -988,6 +1065,7 @@ async function refreshAll() {
     if (!liveData[t]) liveData[t] = {};
     Object.assign(liveData[t], hist, div, {loading: false});
   }));
+  if (run !== refreshRun) return;
   renderCards();
   buildRetTable();
   rebuildAllCharts();
@@ -997,12 +1075,14 @@ async function refreshAll() {
   // Step 3: news
   setStatus('Loading news…');
   newsFeed   = await fetchNewsForTickers(tickers);
+  if (run !== refreshRun) return;
   newsLoaded = true;
   renderNews();
 
   const now = new Date();
   document.getElementById('lastUpdated').textContent =
     `Last updated: ${now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${now.toLocaleTimeString()} · Source: Yahoo Finance`;
+  if (refreshBtn) refreshBtn.disabled = false;
   setStatus('');
 }
 
@@ -1039,12 +1119,14 @@ function onPortChange() {
   renderCards();
   updatePlan('a');
   updatePlan('b');
+  saveSettings();
 }
 
 // stub – kept for compatibility
 function sendPrompt(p) { console.log('[sendPrompt]', p); }
 
 // ─── Init ──────────────────────────────────────────────────────────────────────
+applySavedSettings();
 renderCards();
 onPortChange();
 buildRetTable();
