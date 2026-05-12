@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
 <style>
+.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 :root{color-scheme:light}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2e}
@@ -22,10 +23,12 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
 
 .wrap{padding:16px 20px 40px;max-width:1260px}
 
-.input-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;background:#fff;border:1px solid #dde3f0;border-radius:10px;padding:12px 16px;flex-wrap:wrap}
+.input-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;background:#fff;border:1px solid #dde3f0;border-radius:10px;padding:12px 16px;flex-wrap:wrap}
 .input-row label{font-size:12px;font-weight:700;color:#444;white-space:nowrap}
 .input-row input[type=number]{border:2px solid #4472C4;border-radius:6px;padding:5px 10px;font-size:14px;font-weight:700;color:#1F3864;width:120px}
 .sum-pill{margin-left:auto;background:#eef4fb;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:#2F5496}
+
+.status-bar{font-size:11px;color:#888;margin-bottom:6px;min-height:16px;padding:0 2px}
 
 /* Tabs */
 .tabs{display:flex;gap:4px;margin-bottom:14px;background:#fff;border-radius:10px;padding:6px;border:1px solid #dde3f0;flex-wrap:wrap}
@@ -49,15 +52,19 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
 .b-cash{background:#e8f5e9;color:#386024}
 .b-new{background:#fce8d5;color:#9e4800}
 .ticker{font-size:17px;font-weight:800;color:#1F3864}
-.cname{font-size:9px;color:#999;margin:2px 0 8px;line-height:1.3}
+.cname{font-size:9px;color:#999;margin:2px 0 8px;line-height:1.3;padding-right:40px}
 .price{font-size:20px;font-weight:700}
 .chg{font-size:11px;font-weight:700;margin-top:2px}
-.pos{color:#22863a}.neg{color:#c0392b}
+.pos{color:#22863a}.neg{color:#c0392b}.muted{color:#aaa}
 .metas{display:flex;justify-content:space-between;margin-top:8px;font-size:10px;color:#888}
 .metas span{font-weight:700;color:#333}
 .est{font-size:10px;margin-top:6px;padding:3px 7px;background:#eef4fb;border-radius:5px;color:#2F5496;font-weight:700}
 .score-row{margin-top:7px;font-size:9px;color:#999;display:flex;align-items:center;gap:4px}
 .sbar{height:5px;border-radius:3px;background:#4472C4;display:inline-block}
+
+/* Card remove button */
+.card-rm{position:absolute;bottom:8px;right:8px;background:none;border:1px solid #e0e0e0;cursor:pointer;color:#bbb;font-size:11px;padding:2px 6px;border-radius:4px;line-height:1;transition:all .15s}
+.card-rm:hover{background:#fde8e8;border-color:#e74c3c;color:#e74c3c}
 
 /* Charts row */
 .charts{display:grid;grid-template-columns:260px 1fr;gap:14px;margin-bottom:14px}
@@ -67,8 +74,8 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
 
 /* Returns table panel */
 .rtable{width:100%;border-collapse:collapse;font-size:12px}
-.rtable th{background:#1F3864;color:#fff;padding:9px 12px;text-align:left;font-size:11px;font-weight:700}
-.rtable td{padding:8px 12px;border-bottom:1px solid #eee}
+.rtable th{background:#1F3864;color:#fff;padding:9px 12px;text-align:left;font-size:11px;font-weight:700;white-space:nowrap}
+.rtable td{padding:8px 12px;border-bottom:1px solid #eee;vertical-align:middle}
 .rtable tr:nth-child(even) td{background:#f7f9fc}
 .rtable tr:hover td{background:#eef4fb}
 .ret-pos{color:#22863a;font-weight:700}
@@ -76,6 +83,9 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
 .ret-na{color:#ccc}
 .hold-row td:first-child{font-weight:800;color:#2F5496}
 .watch-row td:first-child{font-weight:700;color:#444}
+.div-yes{color:#22863a;font-weight:700;font-size:11px}
+.div-no{color:#aaa;font-size:11px;font-style:italic}
+.div-na{color:#ccc;font-size:11px}
 
 /* Sector panel */
 .sector-wrap{display:grid;grid-template-columns:300px 1fr;gap:16px}
@@ -92,13 +102,21 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
 .plan-b{background:#f0faf0;border:2px solid #538135}
 .plan-box h4{font-size:13px;font-weight:700;margin-bottom:12px}
 .plan-a h4{color:#1F3864}.plan-b h4{color:#386024}
-.prow{display:flex;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:12px;gap:6px}
-.prow:last-child{border-bottom:none}
+.prow{display:flex;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:12px;gap:5px;flex-wrap:wrap}
+.prow:last-of-type{border-bottom:none}
 .ptk{font-weight:800;width:44px;flex-shrink:0}
-.ppct{color:#888;width:34px;flex-shrink:0}
-.pamt{font-weight:700;color:#1F3864;width:48px;flex-shrink:0;text-align:right}
-.psh{color:#888;font-size:10px;width:60px;flex-shrink:0;text-align:right}
-.prat{font-size:10px;color:#777;flex:1}
+.ppct-wrap{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.ppct-input{width:44px;border:1.5px solid #9bb3d8;border-radius:4px;padding:2px 5px;font-size:12px;font-weight:700;color:#1F3864;text-align:center;background:#fff}
+.ppct-input:focus{outline:none;border-color:#4472C4}
+.ppct-lbl{font-size:11px;color:#888}
+.pamt{font-weight:700;color:#1F3864;width:46px;flex-shrink:0;text-align:right}
+.psh{color:#888;font-size:10px;width:58px;flex-shrink:0;text-align:right}
+.prat{font-size:10px;color:#777;flex:1;min-width:80px}
+.plan-footer{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(0,0,0,.1)}
+.plan-total{display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px}
+.plan-ok{background:#e8f5e9;color:#386024}
+.plan-over{background:#fde8e8;color:#c0392b}
+.plan-err{color:#c0392b;font-size:11px;font-weight:700;margin-top:4px;display:none}
 
 /* Add ticker */
 .add-section{background:#fff;border-radius:10px;padding:16px;border:1px solid #dde3f0;margin-bottom:16px}
@@ -106,10 +124,22 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
 .add-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .add-input{border:2px solid #9bb3d8;border-radius:6px;padding:7px 12px;font-size:13px;font-weight:700;color:#1F3864;width:110px;text-transform:uppercase}
 .add-input:focus{outline:none;border-color:#4472C4}
-.add-note{font-size:11px;color:#888;flex:1}
+.type-select{border:2px solid #9bb3d8;border-radius:6px;padding:7px 10px;font-size:12px;font-weight:700;color:#1F3864;background:#fff;cursor:pointer}
+.type-select:focus{outline:none;border-color:#4472C4}
+.add-note{font-size:11px;color:#888;flex:1;min-width:140px}
 .pending-tickers{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .ptag{background:#fce8d5;color:#9e4800;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:6px}
 .ptag button{background:none;border:none;cursor:pointer;color:#9e4800;font-size:14px;line-height:1;padding:0}
+
+/* News panel */
+.news-list{display:flex;flex-direction:column;gap:10px}
+.news-item{background:#fff;border-radius:10px;padding:14px 16px;border:1px solid #dde3f0}
+.news-headline{display:block;font-size:13px;font-weight:700;color:#1F3864;text-decoration:none;line-height:1.45;margin-bottom:6px}
+.news-headline:hover{color:#4472C4;text-decoration:underline}
+.news-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:10px;color:#999}
+.news-tk{background:#deeaf1;color:#2F5496;font-weight:700;padding:2px 7px;border-radius:10px;font-size:10px}
+.news-empty{text-align:center;padding:48px 20px;color:#aaa;font-size:13px}
+.news-loading{text-align:center;padding:32px 20px;color:#888;font-size:12px}
 
 /* Notes */
 .notes{background:#fffbf0;border:1px solid #f0d080;border-radius:10px;padding:14px}
@@ -119,6 +149,8 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
 .note::before{content:"→ ";color:#e0a000;font-weight:700}
 
 .sect-title{font-size:11px;font-weight:700;color:#2F5496;text-transform:uppercase;letter-spacing:1px;margin:18px 0 10px;border-left:3px solid #4472C4;padding-left:8px}
+
+.empty-cards{color:#aaa;font-size:12px;padding:10px 4px;font-style:italic}
 
 @media(max-width:700px){
   .charts{grid-template-columns:1fr}
@@ -134,9 +166,9 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
 <div class="hdr">
   <h1>ROTH IRA PORTFOLIO DASHBOARD</h1>
   <div class="hdr-sub">
-    <span>Last updated: May 11, 2026 &nbsp;·&nbsp; Sources: StockAnalysis.com &amp; Yahoo Finance</span>
+    <span id="lastUpdated">Fetching live data…</span>
     <div style="display:flex;gap:8px">
-      <button class="btn" onclick="sendPrompt('Update my Roth IRA dashboard — refresh all prices and returns for VOO, SCHD, QQQM, VXUS, SPMO, SMH, VGT, IBIT, SCHG plus any tickers I have added')">&#8635; Refresh Prices</button>
+      <button class="btn" onclick="refreshAll()">&#8635; Refresh Prices</button>
     </div>
   </div>
 </div>
@@ -150,22 +182,23 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
     <div class="sum-pill" id="sumPill">Invested: $2,559 &nbsp;|&nbsp; Cash: $1,941 &nbsp;|&nbsp; Deploy: $1,300</div>
   </div>
 
+  <div class="status-bar" id="statusBar"></div>
+
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab active" onclick="showTab('holdings',this)">Holdings &amp; Watchlist</button>
-    <button class="tab" onclick="showTab('returns',this)">1Y · 3Y · 5Y · 10Y Returns</button>
+    <button class="tab" onclick="showTab('returns',this)">Returns &amp; Dividends</button>
     <button class="tab" onclick="showTab('sectors',this)">Sector Allocation</button>
-    <button class="tab" onclick="showTab('planner',this)">$1,300 Planner</button>
+    <button class="tab" onclick="showTab('news',this)">News</button>
+    <button class="tab" onclick="showTab('planner',this)">Deployment Planner</button>
   </div>
 
-  <!-- TAB 1: Holdings -->
+  <!-- TAB 1: Holdings & Watchlist -->
   <div class="panel active" id="tab-holdings">
     <div class="sect-title">Current Holdings</div>
     <div class="cards" id="holdCards"></div>
-
     <div class="sect-title">Watchlist</div>
     <div class="cards" id="watchCards"></div>
-
     <div class="sect-title">Portfolio Charts</div>
     <div class="charts">
       <div class="cbox">
@@ -179,14 +212,13 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
     </div>
   </div>
 
-  <!-- TAB 2: Returns -->
+  <!-- TAB 2: Returns & Dividends -->
   <div class="panel" id="tab-returns">
     <div class="cbox" style="margin-bottom:14px">
-      <h3>Annualized Returns by Time Period</h3>
-      <div style="font-size:11px;color:#888;margin-bottom:12px">All figures are total return (price + dividends reinvested). IBIT &amp; QQQM launched after 2015 — 10Y not available. Data sourced from StockAnalysis.com &amp; Yahoo Finance.</div>
-      <table class="rtable" id="retTable"></table>
+      <h3>Annualized Returns &amp; Dividend Data</h3>
+      <div style="font-size:11px;color:#888;margin-bottom:12px">Total return (price + dividends reinvested). Dividend data sourced live from Yahoo Finance. "N/A" = fund launched after that period.</div>
+      <div style="overflow-x:auto"><table class="rtable" id="retTable"></table></div>
     </div>
-
     <div class="cbox">
       <h3>Multi-Year Returns Comparison</h3>
       <div class="cwrap" style="height:260px"><canvas id="multiRetChart"></canvas></div>
@@ -196,7 +228,7 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
   <!-- TAB 3: Sectors -->
   <div class="panel" id="tab-sectors">
     <div class="sect-title">Your Invested Portfolio Sector Breakdown</div>
-    <div style="font-size:11px;color:#888;margin-bottom:12px">Based on VOO + SCHD + QQQM holdings only (excludes cash). Sector weights derived from each ETF's underlying holdings.</div>
+    <div style="font-size:11px;color:#888;margin-bottom:12px" id="sectorNote">Based on current holdings (excludes cash). Sector weights derived from each ETF's underlying holdings.</div>
     <div class="sector-wrap">
       <div class="cbox">
         <h3>Sector Allocation</h3>
@@ -207,7 +239,6 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
         <div class="cwrap" style="height:280px"><canvas id="sectorStack"></canvas></div>
       </div>
     </div>
-
     <div class="sect-title" style="margin-top:16px">Concentration Risk</div>
     <div class="cbox">
       <div style="font-size:12px;color:#555;line-height:1.7">
@@ -218,22 +249,86 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
     </div>
   </div>
 
-  <!-- TAB 4: Planner -->
+  <!-- TAB 4: News -->
+  <div class="panel" id="tab-news">
+    <div class="sect-title">Watchlist News</div>
+    <div style="font-size:11px;color:#888;margin-bottom:12px" id="newsSubtitle">Latest news for your watchlist tickers — updates when tickers change.</div>
+    <div id="newsContainer">
+      <div class="news-loading">Loading news…</div>
+    </div>
+  </div>
+
+  <!-- TAB 5: Planner -->
   <div class="panel" id="tab-planner">
-    <div style="font-size:12px;color:#888;margin-bottom:12px">Deploy amount: <strong id="deployAmt">$1,300</strong> &nbsp;·&nbsp; Share counts update live with prices above.</div>
+    <div style="font-size:12px;color:#888;margin-bottom:12px">
+      Deploy amount: <strong id="deployAmt">$1,300</strong> &nbsp;·&nbsp;
+      Edit the % allocations below — each scenario's total must not exceed 100%.
+    </div>
     <div class="plan-grid">
+      <!-- Scenario A -->
       <div class="plan-box plan-a">
         <h4>Scenario A — Concentrated Growth (Tech-Heavy)</h4>
-        <div class="prow"><span class="ptk">SMH</span><span class="ppct">40%</span><span class="pamt">$520</span><span class="psh" id="sa1"></span><span class="prat">AI/chip supercycle — 70% 1Y, 26% ann since inception</span></div>
-        <div class="prow"><span class="ptk">QQQM</span><span class="ppct">35%</span><span class="pamt">$455</span><span class="psh" id="sa2"></span><span class="prat">Add to existing position — Nasdaq 100 core, 40% 1Y</span></div>
-        <div class="prow"><span class="ptk">SCHG</span><span class="ppct">25%</span><span class="pamt">$325</span><span class="psh" id="sa3"></span><span class="prat">Large-cap growth complement, lowest fee at 0.04%</span></div>
+        <div class="prow">
+          <span class="ptk">SMH</span>
+          <span class="ppct-wrap"><input class="ppct-input" type="number" id="sa1p" value="40" min="0" max="100" oninput="updatePlan('a')"><span class="ppct-lbl">%</span></span>
+          <span class="pamt" id="sa1a">$520</span>
+          <span class="psh" id="sa1s"></span>
+          <span class="prat">AI/chip supercycle — top semiconductor ETF</span>
+        </div>
+        <div class="prow">
+          <span class="ptk">QQQM</span>
+          <span class="ppct-wrap"><input class="ppct-input" type="number" id="sa2p" value="35" min="0" max="100" oninput="updatePlan('a')"><span class="ppct-lbl">%</span></span>
+          <span class="pamt" id="sa2a">$455</span>
+          <span class="psh" id="sa2s"></span>
+          <span class="prat">Nasdaq 100 core — add to existing position</span>
+        </div>
+        <div class="prow">
+          <span class="ptk">SCHG</span>
+          <span class="ppct-wrap"><input class="ppct-input" type="number" id="sa3p" value="25" min="0" max="100" oninput="updatePlan('a')"><span class="ppct-lbl">%</span></span>
+          <span class="pamt" id="sa3a">$325</span>
+          <span class="psh" id="sa3s"></span>
+          <span class="prat">Large-cap growth complement, 0.04% fee</span>
+        </div>
+        <div class="plan-footer">
+          <span class="plan-total plan-ok" id="planA-total">Total: 100%</span>
+          <div class="plan-err" id="planA-err">Total allocation cannot exceed 100%.</div>
+        </div>
       </div>
+      <!-- Scenario B -->
       <div class="plan-box plan-b">
         <h4>Scenario B — Balanced Diversification</h4>
-        <div class="prow"><span class="ptk">VGT</span><span class="ppct">30%</span><span class="pamt">$390</span><span class="psh" id="sb1"></span><span class="prat">Broad tech (NVDA+AAPL+MSFT), 22.6% ann 10Y return</span></div>
-        <div class="prow"><span class="ptk">SPMO</span><span class="ppct">30%</span><span class="pamt">$390</span><span class="psh" id="sb2"></span><span class="prat">Momentum factor — 49% 1Y, systematic leader exposure</span></div>
-        <div class="prow"><span class="ptk">VXUS</span><span class="ppct">25%</span><span class="pamt">$325</span><span class="psh" id="sb3"></span><span class="prat">International hedge — 36% 1Y, lowers US correlation</span></div>
-        <div class="prow"><span class="ptk">SCHG</span><span class="ppct">15%</span><span class="pamt">$195</span><span class="psh" id="sb4"></span><span class="prat">Growth tilt to balance SCHD's defensive dividend focus</span></div>
+        <div class="prow">
+          <span class="ptk">VGT</span>
+          <span class="ppct-wrap"><input class="ppct-input" type="number" id="sb1p" value="30" min="0" max="100" oninput="updatePlan('b')"><span class="ppct-lbl">%</span></span>
+          <span class="pamt" id="sb1a">$390</span>
+          <span class="psh" id="sb1s"></span>
+          <span class="prat">Broad tech (NVDA+AAPL+MSFT), 22.6% ann 10Y</span>
+        </div>
+        <div class="prow">
+          <span class="ptk">SPMO</span>
+          <span class="ppct-wrap"><input class="ppct-input" type="number" id="sb2p" value="30" min="0" max="100" oninput="updatePlan('b')"><span class="ppct-lbl">%</span></span>
+          <span class="pamt" id="sb2a">$390</span>
+          <span class="psh" id="sb2s"></span>
+          <span class="prat">Momentum factor — systematic leader exposure</span>
+        </div>
+        <div class="prow">
+          <span class="ptk">VXUS</span>
+          <span class="ppct-wrap"><input class="ppct-input" type="number" id="sb3p" value="25" min="0" max="100" oninput="updatePlan('b')"><span class="ppct-lbl">%</span></span>
+          <span class="pamt" id="sb3a">$325</span>
+          <span class="psh" id="sb3s"></span>
+          <span class="prat">International hedge — lowers US correlation</span>
+        </div>
+        <div class="prow">
+          <span class="ptk">SCHG</span>
+          <span class="ppct-wrap"><input class="ppct-input" type="number" id="sb4p" value="15" min="0" max="100" oninput="updatePlan('b')"><span class="ppct-lbl">%</span></span>
+          <span class="pamt" id="sb4a">$195</span>
+          <span class="psh" id="sb4s"></span>
+          <span class="prat">Growth tilt to balance SCHD's dividend focus</span>
+        </div>
+        <div class="plan-footer">
+          <span class="plan-total plan-ok" id="planB-total">Total: 100%</span>
+          <div class="plan-err" id="planB-err">Total allocation cannot exceed 100%.</div>
+        </div>
       </div>
     </div>
 
@@ -241,7 +336,7 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
     <div class="cbox">
       <h3>$1,300 invested today — projected value at assumed annual returns</h3>
       <div class="cwrap" style="height:240px"><canvas id="projChart"></canvas></div>
-      <div style="font-size:10px;color:#aaa;margin-top:8px">Scenario A assumes 22% avg annual return. Scenario B assumes 15%. These are illustrative projections based on historical performance — not guarantees. All growth inside Roth IRA is 100% tax-free.</div>
+      <div style="font-size:10px;color:#aaa;margin-top:8px">Scenario A assumes 22% avg annual return. Scenario B assumes 15%. Illustrative projections based on historical performance — not guarantees. All growth inside Roth IRA is 100% tax-free.</div>
     </div>
   </div>
 
@@ -250,9 +345,14 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
   <div class="add-section">
     <h3>Custom Ticker Watchlist</h3>
     <div class="add-row">
-      <input class="add-input" type="text" id="tickerInput" placeholder="e.g. NVDA" maxlength="8">
+      <input class="add-input" type="text" id="tickerInput" placeholder="e.g. NVDA" maxlength="8"
+             onkeydown="if(event.key==='Enter')addTicker()">
+      <select class="type-select" id="tickerType">
+        <option value="watch">Watchlist</option>
+        <option value="hold">Holding</option>
+      </select>
       <button class="btn-add" onclick="addTicker()">+ Add Ticker</button>
-      <span class="add-note">Type any stock or ETF ticker and add it. Then click <strong>Refresh Prices</strong> in the header — I'll pull the data and update your dashboard.</span>
+      <span class="add-note">Add any stock or ETF. Default tickers (VOO, QQQM, SCHD) can be removed with the ✕ button on each card and re-added here. Changes persist across page refreshes.</span>
     </div>
     <div class="pending-tickers" id="pendingList"></div>
   </div>
@@ -260,315 +360,699 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
   <!-- Notes -->
   <div class="sect-title">Advisor Notes</div>
   <div class="notes">
-    <h3>Long-Term Roth IRA Strategy — han</h3>
-    <div class="note">Tech concentration is already high at ~33% of invested assets. Adding SMH, VGT, or SCHG deliberately increases this — completely valid for long-term growth, just be prepared for 20–30% drawdowns during corrections.</div>
-    <div class="note">VGT's 10-year annualized return of 22.6% is exceptional. It holds NVDA, AAPL, and MSFT as its top 3 — giving you the Magnificent 7 core without over-concentrating in semiconductors alone.</div>
-    <div class="note">IBIT (Bitcoin ETF) is down 16.88% over the past year. High variance asset — treat like a speculation, not a core holding. Never let it exceed 5% of your Roth.</div>
-    <div class="note">SCHD's 3Y annualized return of 4.2% looks weak vs growth names, but dividends inside a Roth grow 100% tax-free. Reinvested compounding over 10+ years is where SCHD earns its place.</div>
-    <div class="note">43% cash is your biggest opportunity. Even Scenario B's diversified approach at 15% avg annual returns turns $1,300 into ~$5,200 in 10 years — tax-free inside your Roth.</div>
-    <div class="note">Add tickers in the box above, then click Refresh Prices — I'll pull real data for any stock or ETF and update this dashboard.</div>
+    <h3>Long-Term Roth IRA Strategy</h3>
+    <div class="note">Tech concentration is already high at ~33% of invested assets. Adding SMH, VGT, or SCHG deliberately increases this — valid for long-term growth, but prepare for 20–30% drawdowns during corrections.</div>
+    <div class="note">VGT's 10-year annualized return of 22.6% is exceptional. Holds NVDA, AAPL, and MSFT as top 3 — Magnificent 7 core without over-concentrating in semiconductors alone.</div>
+    <div class="note">IBIT (Bitcoin ETF) has high variance — treat as speculation, not a core holding. Never exceed 5% of your Roth.</div>
+    <div class="note">SCHD dividends inside a Roth grow 100% tax-free. Reinvested compounding over 10+ years is where SCHD earns its place despite modest 3Y returns.</div>
+    <div class="note">43% cash is your biggest opportunity. Even Scenario B at 15% avg returns turns $1,300 into ~$5,200 in 10 years — entirely tax-free inside a Roth.</div>
   </div>
 
-</div>
+</div><!-- /wrap -->
 
 <script>
-const TICKERS = [
-  {ticker:"VOO", name:"Vanguard S&P 500 ETF",         type:"hold", alloc:.2142,
-   price:678.04, chg:.82,  r1:33.0,  r3:8.9,  r5:14.5, r10:13.1,
-   yld:1.30, exp:.03, score:7, pe:27.0, beta:1.00,
-   sect:{Technology:28,Healthcare:13,Financials:13,"Cons. Disc.":10,Industrials:9,"Comm. Services":9,Other:18}},
-  {ticker:"SCHD",name:"Schwab US Dividend ETF",        type:"hold", alloc:.1298,
-   price:31.62, chg:.25,  r1:17.5,  r3:4.2,  r5:11.1, r10:11.0,
-   yld:3.50, exp:.06, score:6, pe:18.5, beta:.75,
-   sect:{Financials:20,Healthcare:15,"Cons. Staples":15,Energy:13,Industrials:11,Technology:10,Other:16}},
-  {ticker:"QQQM",name:"Invesco NASDAQ 100 ETF",        type:"hold", alloc:.2246,
-   price:293.50,chg:.23,  r1:40.17, r3:12.0, r5:16.36,r10:null,
-   yld:.60,  exp:.15, score:8, pe:33.0, beta:1.15,
-   sect:{Technology:51,"Cons. Disc.":18,"Comm. Services":9,Healthcare:7,Industrials:4,Other:11}},
-  {ticker:"VXUS",name:"Vanguard Total Intl Stock ETF", type:"watch",alloc:0,
-   price:85.43, chg:1.40, r1:36.07, r3:6.5,  r5:9.2,  r10:5.8,
-   yld:3.00, exp:.07, score:7, pe:14.0, beta:.85,
-   sect:{Financials:22,Technology:15,Industrials:12,"Cons. Disc.":11,Healthcare:9,Other:31}},
-  {ticker:"SPMO",name:"Invesco S&P 500 Momentum ETF",  type:"watch",alloc:0,
-   price:143.81,chg:3.24, r1:48.80, r3:18.5, r5:18.0, r10:null,
-   yld:.30,  exp:.13, score:8, pe:30.0, beta:1.05,
-   sect:{Technology:38,Financials:15,"Cons. Disc.":12,Industrials:10,"Comm. Services":8,Other:17}},
-  {ticker:"SMH", name:"VanEck Semiconductor ETF",      type:"watch",alloc:0,
-   price:566.54,chg:4.90, r1:69.71, r3:28.0, r5:32.0, r10:26.17,
-   yld:.29,  exp:.35, score:10,pe:43.45,beta:1.56,
-   sect:{Technology:100}},
-  {ticker:"VGT", name:"Vanguard Info Technology ETF",  type:"watch",alloc:0,
-   price:719.03,chg:2.68, r1:23.06, r3:15.0, r5:20.0, r10:22.6,
-   yld:.42,  exp:.09, score:9, pe:37.42,beta:1.28,
-   sect:{Technology:100}},
-  {ticker:"IBIT",name:"iShares Bitcoin Trust ETF",     type:"watch",alloc:0,
-   price:46.12, chg:1.59, r1:-16.88,r3:null, r5:null, r10:null,
-   yld:0,    exp:.25, score:5, pe:null, beta:1.80,
-   sect:{"Digital Assets":100}},
-  {ticker:"SCHG",name:"Schwab US Large-Cap Growth ETF",type:"watch",alloc:0,
-   price:34.12, chg:.68,  r1:32.95, r3:10.0, r5:15.0, r10:15.2,
-   yld:.10,  exp:.04, score:8, pe:30.0, beta:1.10,
-   sect:{Technology:45,"Cons. Disc.":15,"Comm. Services":12,Healthcare:8,Industrials:5,Other:15}},
+// ─── Ticker metadata (static: sector data, scores, expense ratios, default alloc) ───
+const TICKER_META = {
+  VOO:  {name:'Vanguard S&P 500 ETF',          exp:.03, score:7, alloc:.2142, sect:{Technology:28,Healthcare:13,Financials:13,"Cons. Disc.":10,Industrials:9,"Comm. Services":9,Other:18}},
+  SCHD: {name:'Schwab US Dividend ETF',         exp:.06, score:6, alloc:.1298, sect:{Financials:20,Healthcare:15,"Cons. Staples":15,Energy:13,Industrials:11,Technology:10,Other:16}},
+  QQQM: {name:'Invesco NASDAQ 100 ETF',         exp:.15, score:8, alloc:.2246, sect:{Technology:51,"Cons. Disc.":18,"Comm. Services":9,Healthcare:7,Industrials:4,Other:11}},
+  VXUS: {name:'Vanguard Total Intl Stock ETF',  exp:.07, score:7, alloc:0,    sect:{Financials:22,Technology:15,Industrials:12,"Cons. Disc.":11,Healthcare:9,Other:31}},
+  SPMO: {name:'Invesco S&P 500 Momentum ETF',   exp:.13, score:8, alloc:0,    sect:{Technology:38,Financials:15,"Cons. Disc.":12,Industrials:10,"Comm. Services":8,Other:17}},
+  SMH:  {name:'VanEck Semiconductor ETF',       exp:.35, score:10,alloc:0,    sect:{Technology:100}},
+  VGT:  {name:'Vanguard Info Technology ETF',   exp:.09, score:9, alloc:0,    sect:{Technology:100}},
+  IBIT: {name:'iShares Bitcoin Trust ETF',      exp:.25, score:5, alloc:0,    sect:{"Digital Assets":100}},
+  SCHG: {name:'Schwab US Large-Cap Growth ETF', exp:.04, score:8, alloc:0,    sect:{Technology:45,"Cons. Disc.":15,"Comm. Services":12,Healthcare:8,Industrials:5,Other:15}},
+};
+
+const DEFAULT_LIST = [
+  {ticker:'VOO',  type:'hold'},
+  {ticker:'SCHD', type:'hold'},
+  {ticker:'QQQM', type:'hold'},
+  {ticker:'VXUS', type:'watch'},
+  {ticker:'SPMO', type:'watch'},
+  {ticker:'SMH',  type:'watch'},
+  {ticker:'VGT',  type:'watch'},
+  {ticker:'IBIT', type:'watch'},
+  {ticker:'SCHG', type:'watch'},
 ];
 
-const CUSTOM = [];
-const CHARTS = {};
+// ─── localStorage ────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'roth_dashboard_v4';
 
-function portVal(){ return parseFloat(document.getElementById('portVal').value)||4500; }
-
-function fmt(v,pre='$'){ return pre+v.toLocaleString('en-US',{maximumFractionDigits:0}); }
-function fmtPct(v){ if(v==null) return '<span class="ret-na">N/A</span>';
-  return `<span class="${v>=0?'ret-pos':'ret-neg'}">${v>=0?'+':''}${v.toFixed(1)}%</span>`; }
-
-function onPortChange(){
-  const t=portVal(), inv=t*(1-.4313), cash=t*.4313;
-  document.getElementById('sumPill').textContent =
-    `Invested: ${fmt(inv)} | Cash: ${fmt(cash)} | Deploy: $1,300`;
-  renderCards();
-  updateShares();
+function loadList() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : DEFAULT_LIST.slice();
+  } catch { return DEFAULT_LIST.slice(); }
+}
+function saveList() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tickerList)); } catch {}
 }
 
-function makeCard(d, total){
-  const isHold=d.type==='hold', isCustom=d.type==='custom';
-  const chgCls=d.chg>=0?'pos':'neg';
-  const chgStr=d.chg>=0?`▲ ${d.chg.toFixed(2)}%`:`▼ ${Math.abs(d.chg).toFixed(2)}%`;
-  const estVal=isHold?`<div class="est">Est. Value: ${fmt(total*d.alloc)}</div>`:'';
-  const badgeCls=isHold?'b-hold':isCustom?'b-new':'b-watch';
-  const badgeTxt=isHold?'HOLD':isCustom?'NEW':'WATCH';
-  const scoreW=Math.round((d.score/10)*60);
-  return `<div class="card ${isHold?'hold':isCustom?'custom':'watch'}">
+// ─── State ───────────────────────────────────────────────────────────────────
+let tickerList = loadList();
+let liveData   = {};   // {VOO: {price, chg, beta, pe, yld, r1, r3, r5, r10, divRate, divYield, divFreq, exDate, payDate, loading}}
+let newsFeed   = [];
+let newsLoaded = false;
+let CHARTS     = {};
+
+// Mark all tickers as loading before first fetch
+tickerList.forEach(t => { liveData[t.ticker] = {loading: true}; });
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function portVal() { return parseFloat(document.getElementById('portVal').value) || 4500; }
+function deployAmt() { return Math.round(portVal() * (1300 / 4500)); }
+function fmt(v) { return '$' + Math.round(v).toLocaleString('en-US'); }
+function fmtPct(v) {
+  if (v == null || isNaN(v)) return '<span class="ret-na">N/A</span>';
+  const n = parseFloat(v);
+  return `<span class="${n >= 0 ? 'ret-pos' : 'ret-neg'}">${n >= 0 ? '+' : ''}${n.toFixed(1)}%</span>`;
+}
+function setStatus(msg) {
+  const el = document.getElementById('statusBar');
+  if (el) el.textContent = msg;
+}
+function fmtAgo(ts) {
+  const diff = Math.floor(Date.now() / 1000 - ts);
+  if (diff < 3600)   return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400)  return Math.floor(diff / 3600) + 'h ago';
+  if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+  return new Date(ts * 1000).toLocaleDateString();
+}
+
+function getAllTickers() {
+  return tickerList.map(t => {
+    const meta = TICKER_META[t.ticker] || {name: t.ticker, exp: 0, score: 0, alloc: 0, sect: {}};
+    const live = liveData[t.ticker] || {};
+    return {
+      ticker:   t.ticker,
+      type:     t.type,
+      name:     live.name     || meta.name,
+      price:    live.price,
+      chg:      live.chg,
+      beta:     live.beta,
+      pe:       live.pe,
+      yld:      live.yld,
+      r1:       live.r1,
+      r3:       live.r3,
+      r5:       live.r5,
+      r10:      live.r10,
+      exp:      meta.exp,
+      score:    meta.score,
+      alloc:    meta.alloc || 0,
+      sect:     meta.sect  || {},
+      divRate:  live.divRate,   // undefined=not loaded, null=no dividend, number=has dividend
+      divYield: live.divYield,
+      divFreq:  live.divFreq,
+      exDate:   live.exDate,
+      payDate:  live.payDate,
+      loading:  !!live.loading,
+    };
+  });
+}
+
+// ─── Yahoo Finance API (with proxy fallback) ──────────────────────────────────
+const PROXIES = [
+  url => url,
+  url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
+
+async function yfFetch(url) {
+  for (const makeUrl of PROXIES) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 9000);
+      const res = await fetch(makeUrl(url), {signal: ctrl.signal});
+      clearTimeout(timer);
+      if (res.ok) {
+        const text = await res.text();
+        return JSON.parse(text);
+      }
+    } catch {}
+  }
+  return null;
+}
+
+async function fetchQuotes(tickers) {
+  if (!tickers.length) return;
+  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers.join(',')}`;
+  const data = await yfFetch(url);
+  if (!data?.quoteResponse?.result) return false;
+  data.quoteResponse.result.forEach(q => {
+    if (!liveData[q.symbol]) liveData[q.symbol] = {};
+    const d = liveData[q.symbol];
+    d.price   = q.regularMarketPrice          ?? d.price;
+    d.chg     = q.regularMarketChangePercent  ?? d.chg ?? 0;
+    d.beta    = q.beta                        ?? d.beta;
+    d.pe      = q.trailingPE                  ?? null;
+    d.yld     = q.trailingAnnualDividendYield != null ? +(q.trailingAnnualDividendYield * 100).toFixed(2) : (d.yld ?? 0);
+    d.name    = q.longName || q.shortName     || d.name;
+    d.loading = false;
+  });
+  return true;
+}
+
+async function fetchHistoricalReturn(ticker) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1mo&range=10y`;
+  const data = await yfFetch(url);
+  if (!data?.chart?.result?.[0]) return {};
+  const res     = data.chart.result[0];
+  const closes  = res.indicators?.adjclose?.[0]?.adjclose || res.indicators?.quote?.[0]?.close || [];
+  const valid   = closes.map((v, i) => ({v, i})).filter(x => x.v != null);
+  if (valid.length < 2) return {};
+  const last    = valid[valid.length - 1].v;
+  const n       = valid.length;
+
+  const calc = months => {
+    // find close ~`months` months back from end
+    const target = n - 1 - months;
+    if (target < 0) return null;
+    // find nearest valid index at or before target
+    const candidates = valid.filter(x => x.i <= Math.min(target + 3, n - 1) && x.i >= Math.max(target - 3, 0));
+    if (!candidates.length) return null;
+    const base = candidates.reduce((a, b) => Math.abs(a.i - target) < Math.abs(b.i - target) ? a : b).v;
+    if (!base || base <= 0) return null;
+    const total = (last - base) / base;
+    if (months <= 12) return +((total * 100).toFixed(1));
+    const years = months / 12;
+    return +((( Math.pow(1 + total, 1 / years) - 1) * 100).toFixed(1));
+  };
+
+  return {r1: calc(12), r3: calc(36), r5: calc(60), r10: calc(120)};
+}
+
+async function fetchDividend(ticker) {
+  const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=summaryDetail,calendarEvents`;
+  const data = await yfFetch(url);
+  if (!data?.quoteSummary?.result?.[0]) return {divRate: null, divYield: null, divFreq: null, exDate: null, payDate: null};
+  const sd = data.quoteSummary.result[0].summaryDetail   || {};
+  const ce = data.quoteSummary.result[0].calendarEvents  || {};
+  const rate = sd.dividendRate?.raw ?? null;
+  const rawYield = sd.dividendYield?.raw ?? null;
+  const yld  = rawYield != null ? +(rawYield * 100).toFixed(2) : null;
+
+  let freq = null;
+  if (rate && rate > 0) {
+    const price = liveData[ticker]?.price || 0;
+    if (price > 0) {
+      const perPmt = rate / price;
+      freq = perPmt < 0.005 ? 'Monthly' : perPmt < 0.018 ? 'Quarterly' : 'Semi-annual';
+    } else {
+      freq = 'Quarterly';
+    }
+  }
+
+  return {
+    divRate:  rate != null ? +rate.toFixed(2) : null,
+    divYield: yld,
+    divFreq:  freq,
+    exDate:   sd.exDividendDate?.fmt  || null,
+    payDate:  ce.dividendDate?.fmt    || null,
+  };
+}
+
+async function fetchNewsForTickers(tickers) {
+  const seen  = new Set();
+  const items = [];
+  // fetch news for each ticker (cap at 8 tickers to avoid rate limits)
+  for (const tkr of tickers.slice(0, 8)) {
+    const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${tkr}&newsCount=4&quotesCount=0`;
+    const data = await yfFetch(url);
+    if (!data?.news) continue;
+    for (const n of data.news) {
+      if (seen.has(n.uuid)) continue;
+      seen.add(n.uuid);
+      items.push({
+        uuid:      n.uuid,
+        title:     n.title,
+        publisher: n.publisher,
+        link:      n.link,
+        time:      n.providerPublishTime,
+        ticker:    tkr,
+      });
+    }
+  }
+  items.sort((a, b) => b.time - a.time);
+  return items;
+}
+
+// ─── Render: Cards ────────────────────────────────────────────────────────────
+function makeCard(d, total) {
+  const isHold   = d.type === 'hold';
+  const isCustom = !TICKER_META[d.ticker];
+  const cardCls  = isHold ? 'hold' : isCustom ? 'custom' : 'watch';
+  const badgeCls = isHold ? 'b-hold' : isCustom ? 'b-new' : 'b-watch';
+  const badgeTxt = isHold ? 'HOLD'   : isCustom ? 'NEW'   : 'WATCH';
+
+  let priceStr = 'Data unavailable';
+  let chgStr   = '';
+  let chgCls   = 'muted';
+
+  if (d.loading) {
+    priceStr = '— loading…';
+    chgStr   = '⏳ fetching';
+    chgCls   = 'muted';
+  } else if (d.price != null) {
+    priceStr = `$${d.price.toFixed(2)}`;
+    const c  = d.chg ?? 0;
+    chgCls   = c >= 0 ? 'pos' : 'neg';
+    chgStr   = c >= 0 ? `▲ ${Math.abs(c).toFixed(2)}% today` : `▼ ${Math.abs(c).toFixed(2)}% today`;
+  }
+
+  const estVal  = isHold && d.alloc > 0 && !d.loading
+    ? `<div class="est">Est. Value: ${fmt(total * d.alloc)}</div>`
+    : '';
+  const scoreW  = Math.round((d.score / 10) * 60);
+  const scoreEl = d.score
+    ? `<div class="score-row">Score <span class="sbar" style="width:${scoreW}px"></span> <strong style="color:#1F3864">${d.score}/10</strong></div>`
+    : '';
+
+  return `<div class="card ${cardCls}">
     <span class="badge ${badgeCls}">${badgeTxt}</span>
     <div class="ticker">${d.ticker}</div>
     <div class="cname">${d.name}</div>
-    <div class="price">$${d.price.toFixed(2)}</div>
-    <div class="chg ${chgCls}">${chgStr} today</div>
+    <div class="price">${priceStr}</div>
+    <div class="chg ${chgCls}">${chgStr}</div>
     <div class="metas">
-      <div>Yield<span>${d.yld.toFixed(1)}%</span></div>
+      <div>Yield<span>${d.yld != null ? d.yld.toFixed(1) + '%' : '—'}</span></div>
       <div>Fee<span>${d.exp.toFixed(2)}%</span></div>
-      <div>Beta<span>${d.beta.toFixed(2)}</span></div>
+      <div>Beta<span>${d.beta != null ? d.beta.toFixed(2) : '—'}</span></div>
     </div>
     ${estVal}
-    <div class="score-row">Score <span class="sbar" style="width:${scoreW}px"></span> <strong style="color:#1F3864">${d.score}/10</strong></div>
+    ${scoreEl}
+    <button class="card-rm" onclick="removeTicker('${d.ticker}')" title="Remove ${d.ticker}">✕</button>
   </div>`;
 }
 
-function renderCards(){
-  const t=portVal();
-  const all=TICKERS.concat(CUSTOM);
-  document.getElementById('holdCards').innerHTML=
-    all.filter(d=>d.type==='hold').map(d=>makeCard(d,t)).join('');
-  document.getElementById('watchCards').innerHTML=
-    all.filter(d=>d.type!=='hold').map(d=>makeCard(d,t)).join('');
+function renderCards() {
+  const t   = portVal();
+  const all = getAllTickers();
+  const holdHTML  = all.filter(d => d.type === 'hold').map(d => makeCard(d, t)).join('');
+  const watchHTML = all.filter(d => d.type !== 'hold').map(d => makeCard(d, t)).join('');
+  document.getElementById('holdCards').innerHTML  = holdHTML  || '<div class="empty-cards">No holdings. Add tickers below.</div>';
+  document.getElementById('watchCards').innerHTML = watchHTML || '<div class="empty-cards">No watchlist tickers.</div>';
 }
 
-function buildAllocChart(){
-  const ctx=document.getElementById('allocChart').getContext('2d');
-  if(CHARTS.alloc) CHARTS.alloc.destroy();
-  CHARTS.alloc=new Chart(ctx,{type:'doughnut',data:{
-    labels:['VOO','SCHD','QQQM','Cash'],
-    datasets:[{data:[21.42,12.98,22.46,43.14],
-      backgroundColor:['#4472C4','#70AD47','#ED7D31','#A5A5A5'],
-      borderWidth:2,borderColor:'#fff'}]
-  },options:{plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:6}}},
-    cutout:'62%',maintainAspectRatio:false}});
+// ─── Render: Returns table ─────────────────────────────────────────────────
+function divCell(d) {
+  if (d.loading)
+    return '<td colspan="4" style="color:#aaa;font-size:11px;font-style:italic">Loading dividend data…</td>';
+  if (d.divRate === undefined)
+    return '<td colspan="4" class="ret-na">—</td>';
+  if (!d.divRate)
+    return `<td class="div-no">No dividend</td><td class="div-no">—</td><td class="div-no">—</td><td class="div-no">—</td>`;
+  const rateStr  = `$${d.divRate.toFixed(2)}/yr`;
+  const freqStr  = d.divFreq  || '—';
+  const yldStr   = d.divYield != null ? d.divYield.toFixed(2) + '%' : '—';
+  const exStr    = d.exDate   || '—';
+  return `<td class="div-yes">${rateStr}<br><small style="font-weight:400;color:#888">${freqStr}</small></td>
+          <td style="font-size:11px;color:#22863a;font-weight:700">${yldStr}</td>
+          <td style="font-size:10px;color:#888">${exStr}</td>
+          <td style="font-size:10px;color:#888">${d.payDate || '—'}</td>`;
 }
 
-function build1yChart(){
-  const ctx=document.getElementById('ret1yChart').getContext('2d');
-  if(CHARTS.r1y) CHARTS.r1y.destroy();
-  const all=TICKERS.concat(CUSTOM.filter(c=>c.r1!=null));
-  CHARTS.r1y=new Chart(ctx,{type:'bar',data:{
-    labels:all.map(d=>d.ticker),
-    datasets:[{data:all.map(d=>d.r1),
-      backgroundColor:all.map(d=>d.r1>=0?'#4472C4':'#C0392B'),
-      borderRadius:4,label:'1Y Return %'}]
-  },options:{plugins:{legend:{display:false},
-    tooltip:{callbacks:{label:c=>` ${c.raw.toFixed(1)}%`}}},
-    scales:{y:{ticks:{callback:v=>v+'%',font:{size:9}},grid:{color:'#f0f0f0'}},
-      x:{ticks:{font:{size:10,weight:'700'}}}},
-    maintainAspectRatio:false}});
-}
-
-function buildRetTable(){
-  const all=TICKERS.concat(CUSTOM);
-  const rows=all.map(d=>`
-    <tr class="${d.type==='hold'?'hold-row':'watch-row'}">
+function buildRetTable() {
+  const all  = getAllTickers();
+  const rows = all.map(d => `
+    <tr class="${d.type === 'hold' ? 'hold-row' : 'watch-row'}">
       <td>${d.ticker}</td>
-      <td style="color:#888;font-size:10px">${d.name}</td>
+      <td style="color:#888;font-size:10px;max-width:130px">${d.name}</td>
       <td>${fmtPct(d.r1)}</td>
       <td>${fmtPct(d.r3)}</td>
       <td>${fmtPct(d.r5)}</td>
       <td>${fmtPct(d.r10)}</td>
       <td style="font-size:11px;color:#888">${d.exp.toFixed(2)}%</td>
+      ${divCell(d)}
     </tr>`).join('');
-  document.getElementById('retTable').innerHTML=`
+  document.getElementById('retTable').innerHTML = `
     <thead><tr>
       <th>Ticker</th><th>Name</th>
-      <th>1Y Return</th><th>3Y Ann.</th><th>5Y Ann.</th><th>10Y Ann.</th>
-      <th>Expense</th>
+      <th>1Y</th><th>3Y Ann.</th><th>5Y Ann.</th><th>10Y Ann.</th>
+      <th>Expense</th><th>Div. / Yr</th><th>Div. Yield</th><th>Ex-Div</th><th>Pay Date</th>
     </tr></thead><tbody>${rows}</tbody>`;
 }
 
-function buildMultiRetChart(){
-  const ctx=document.getElementById('multiRetChart').getContext('2d');
-  if(CHARTS.multi) CHARTS.multi.destroy();
-  const all=TICKERS.concat(CUSTOM);
-  const colors=['#4472C4','#70AD47','#ED7D31','#FF0000','#9B59B6','#1ABC9C','#E67E22','#95A5A6','#2ECC71'];
-  CHARTS.multi=new Chart(ctx,{type:'bar',data:{
-    labels:['1Y Return','3Y Annualized','5Y Annualized','10Y Annualized'],
-    datasets:all.map((d,i)=>({
-      label:d.ticker,
-      data:[d.r1,d.r3,d.r5,d.r10],
-      backgroundColor:colors[i%colors.length],
-      borderRadius:3
-    }))
-  },options:{plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}}},
-    scales:{y:{ticks:{callback:v=>v==null?'':v+'%',font:{size:9}},grid:{color:'#f0f0f0'}},
-      x:{ticks:{font:{size:10}}}},
-    maintainAspectRatio:false}});
-}
-
-const SECTOR_COLORS={
-  Technology:'#4472C4',Healthcare:'#70AD47',Financials:'#ED7D31',"Cons. Disc.":'#FF0000',
+// ─── Render: Charts ───────────────────────────────────────────────────────────
+const CHART_COLORS = ['#4472C4','#70AD47','#ED7D31','#9B59B6','#1ABC9C','#E67E22','#F39C12','#E74C3C','#3498DB','#2ECC71','#95A5A6'];
+const SECTOR_COLORS = {
+  Technology:'#4472C4',Healthcare:'#70AD47',Financials:'#ED7D31',"Cons. Disc.":'#E74C3C',
   Industrials:'#9B59B6',"Comm. Services":'#1ABC9C',"Cons. Staples":'#E67E22',
-  Energy:'#F39C12',Other:'#BDC3C7',"Digital Assets":'#F7CA18',
-  "Cons. Growth":'#3498DB',Real_Estate:'#E74C3C'
+  Energy:'#F39C12',Other:'#BDC3C7',"Digital Assets":'#F7CA18'
 };
 
-function buildSectorChart(){
-  const holds=TICKERS.filter(d=>d.type==='hold');
-  const totInvested=holds.reduce((s,d)=>s+d.alloc,0);
-  const agg={};
-  holds.forEach(d=>{
-    const w=d.alloc/totInvested;
-    Object.entries(d.sect).forEach(([s,pct])=>{
-      agg[s]=(agg[s]||0)+w*pct;
-    });
-  });
-  const labels=Object.keys(agg).sort((a,b)=>agg[b]-agg[a]);
-  const vals=labels.map(l=>parseFloat(agg[l].toFixed(1)));
-  const bgColors=labels.map(l=>SECTOR_COLORS[l]||'#95A5A6');
-
-  const ctx=document.getElementById('sectorChart').getContext('2d');
-  if(CHARTS.sect) CHARTS.sect.destroy();
-  CHARTS.sect=new Chart(ctx,{type:'doughnut',data:{
-    labels,datasets:[{data:vals,backgroundColor:bgColors,borderWidth:2,borderColor:'#fff'}]
-  },options:{plugins:{legend:{position:'bottom',labels:{font:{size:9},padding:5}}},
-    cutout:'55%',maintainAspectRatio:false,
-    plugins:{tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw.toFixed(1)}%`}}}}});
+function buildAllocChart() {
+  const holds = getAllTickers().filter(d => d.type === 'hold' && d.alloc > 0);
+  const totInv = holds.reduce((s, d) => s + d.alloc, 0);
+  const cashPct = Math.max(0, +(100 - totInv * 100).toFixed(2));
+  const ctx = document.getElementById('allocChart').getContext('2d');
+  if (CHARTS.alloc) CHARTS.alloc.destroy();
+  CHARTS.alloc = new Chart(ctx, {type:'doughnut', data:{
+    labels: [...holds.map(d => d.ticker), 'Cash'],
+    datasets:[{
+      data: [...holds.map(d => +(d.alloc * 100).toFixed(2)), cashPct],
+      backgroundColor: [...holds.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]), '#A5A5A5'],
+      borderWidth:2, borderColor:'#fff'
+    }]
+  }, options:{plugins:{legend:{position:'bottom', labels:{font:{size:10}, padding:6}}},
+    cutout:'62%', maintainAspectRatio:false}});
 }
 
-function buildSectorStack(){
-  const holds=TICKERS.filter(d=>d.type==='hold');
-  const totInvested=holds.reduce((s,d)=>s+d.alloc,0);
-  const allSects=new Set();
-  holds.forEach(d=>Object.keys(d.sect).forEach(s=>allSects.add(s)));
-  const sects=Array.from(allSects);
-  const tickerColors=['#4472C4','#70AD47','#ED7D31'];
+function build1yChart() {
+  const ctx = document.getElementById('ret1yChart').getContext('2d');
+  if (CHARTS.r1y) CHARTS.r1y.destroy();
+  const all = getAllTickers().filter(d => d.r1 != null);
+  if (!all.length) return;
+  CHARTS.r1y = new Chart(ctx, {type:'bar', data:{
+    labels: all.map(d => d.ticker),
+    datasets:[{
+      data: all.map(d => d.r1),
+      backgroundColor: all.map(d => d.r1 >= 0 ? '#4472C4' : '#C0392B'),
+      borderRadius:4, label:'1Y Return %'
+    }]
+  }, options:{
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => ` ${parseFloat(c.raw).toFixed(1)}%`}}},
+    scales:{
+      y:{ticks:{callback: v => v+'%', font:{size:9}}, grid:{color:'#f0f0f0'}},
+      x:{ticks:{font:{size:10, weight:'700'}}}
+    }, maintainAspectRatio:false}});
+}
 
-  const ctx=document.getElementById('sectorStack').getContext('2d');
-  if(CHARTS.stack) CHARTS.stack.destroy();
-  CHARTS.stack=new Chart(ctx,{type:'bar',data:{
-    labels:sects,
-    datasets:holds.map((d,i)=>({
-      label:d.ticker,
-      data:sects.map(s=>{
-        const w=d.alloc/totInvested;
-        return parseFloat(((d.sect[s]||0)*w).toFixed(1));
-      }),
-      backgroundColor:tickerColors[i],
+function buildMultiRetChart() {
+  const ctx = document.getElementById('multiRetChart').getContext('2d');
+  if (CHARTS.multi) CHARTS.multi.destroy();
+  const all = getAllTickers();
+  CHARTS.multi = new Chart(ctx, {type:'bar', data:{
+    labels:['1Y Return','3Y Annualized','5Y Annualized','10Y Annualized'],
+    datasets: all.map((d, i) => ({
+      label: d.ticker,
+      data: [d.r1, d.r3, d.r5, d.r10],
+      backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+      borderRadius:3
+    }))
+  }, options:{
+    plugins:{legend:{position:'right', labels:{font:{size:10}, boxWidth:12}}},
+    scales:{
+      y:{ticks:{callback: v => v == null ? '' : v+'%', font:{size:9}}, grid:{color:'#f0f0f0'}},
+      x:{ticks:{font:{size:10}}}
+    }, maintainAspectRatio:false}});
+}
+
+function buildSectorChart() {
+  const holds = getAllTickers().filter(d => d.type === 'hold' && Object.keys(d.sect).length);
+  if (!holds.length) return;
+  const totInv = holds.reduce((s, d) => s + d.alloc, 0) || 1;
+  const agg = {};
+  holds.forEach(d => {
+    const w = d.alloc / totInv;
+    Object.entries(d.sect).forEach(([s, pct]) => { agg[s] = (agg[s] || 0) + w * pct; });
+  });
+  const labels = Object.keys(agg).sort((a, b) => agg[b] - agg[a]);
+  const ctx = document.getElementById('sectorChart').getContext('2d');
+  if (CHARTS.sect) CHARTS.sect.destroy();
+  CHARTS.sect = new Chart(ctx, {type:'doughnut', data:{
+    labels,
+    datasets:[{
+      data: labels.map(l => +agg[l].toFixed(1)),
+      backgroundColor: labels.map(l => SECTOR_COLORS[l] || '#95A5A6'),
+      borderWidth:2, borderColor:'#fff'
+    }]
+  }, options:{
+    plugins:{
+      legend:{position:'bottom', labels:{font:{size:9}, padding:5}},
+      tooltip:{callbacks:{label: c => `${c.label}: ${c.raw.toFixed(1)}%`}}
+    }, cutout:'55%', maintainAspectRatio:false}});
+}
+
+function buildSectorStack() {
+  const holds = getAllTickers().filter(d => d.type === 'hold' && Object.keys(d.sect).length);
+  if (!holds.length) return;
+  const totInv   = holds.reduce((s, d) => s + d.alloc, 0) || 1;
+  const allSects = [...new Set(holds.flatMap(d => Object.keys(d.sect)))];
+  const tColors  = ['#4472C4','#70AD47','#ED7D31','#9B59B6','#1ABC9C'];
+  const ctx = document.getElementById('sectorStack').getContext('2d');
+  if (CHARTS.stack) CHARTS.stack.destroy();
+  CHARTS.stack = new Chart(ctx, {type:'bar', data:{
+    labels: allSects,
+    datasets: holds.map((d, i) => ({
+      label: d.ticker,
+      data:  allSects.map(s => +((d.sect[s] || 0) * d.alloc / totInv).toFixed(1)),
+      backgroundColor: tColors[i % tColors.length],
       borderRadius:2
     }))
-  },options:{plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:12}}},
-    scales:{x:{stacked:true,ticks:{font:{size:9}}},
-      y:{stacked:true,ticks:{callback:v=>v+'%',font:{size:9}},grid:{color:'#f0f0f0'}}},
-    maintainAspectRatio:false}});
+  }, options:{
+    plugins:{legend:{position:'top', labels:{font:{size:10}, boxWidth:12}}},
+    scales:{
+      x:{stacked:true, ticks:{font:{size:9}}},
+      y:{stacked:true, ticks:{callback: v => v+'%', font:{size:9}}, grid:{color:'#f0f0f0'}}
+    }, maintainAspectRatio:false}});
 }
 
-function buildProjChart(){
-  const ctx=document.getElementById('projChart').getContext('2d');
-  if(CHARTS.proj) CHARTS.proj.destroy();
-  const years=[0,1,2,3,5,7,10,15,20];
-  const scA=years.map(y=>parseFloat((1300*Math.pow(1.22,y)).toFixed(0)));
-  const scB=years.map(y=>parseFloat((1300*Math.pow(1.15,y)).toFixed(0)));
-  const spy=years.map(y=>parseFloat((1300*Math.pow(1.13,y)).toFixed(0)));
-  CHARTS.proj=new Chart(ctx,{type:'line',data:{
-    labels:years.map(y=>y===0?'Today':`Yr ${y}`),
+function buildProjChart() {
+  const ctx = document.getElementById('projChart').getContext('2d');
+  if (CHARTS.proj) CHARTS.proj.destroy();
+  const years = [0,1,2,3,5,7,10,15,20];
+  const base  = deployAmt();
+  const scA = years.map(y => Math.round(base * Math.pow(1.22, y)));
+  const scB = years.map(y => Math.round(base * Math.pow(1.15, y)));
+  const spy = years.map(y => Math.round(base * Math.pow(1.13, y)));
+  CHARTS.proj = new Chart(ctx, {type:'line', data:{
+    labels: years.map(y => y === 0 ? 'Today' : `Yr ${y}`),
     datasets:[
-      {label:'Scenario A (22% avg)',data:scA,borderColor:'#4472C4',backgroundColor:'rgba(68,114,196,.1)',tension:.4,fill:true,borderWidth:2.5},
-      {label:'Scenario B (15% avg)',data:scB,borderColor:'#70AD47',backgroundColor:'rgba(112,173,71,.1)',tension:.4,fill:true,borderWidth:2.5},
-      {label:'S&P 500 baseline (13%)',data:spy,borderColor:'#A5A5A5',borderDash:[5,5],tension:.4,borderWidth:1.5}
+      {label:'Scenario A (22% avg)', data:scA, borderColor:'#4472C4', backgroundColor:'rgba(68,114,196,.1)', tension:.4, fill:true, borderWidth:2.5},
+      {label:'Scenario B (15% avg)', data:scB, borderColor:'#70AD47', backgroundColor:'rgba(112,173,71,.1)',  tension:.4, fill:true, borderWidth:2.5},
+      {label:'S&P 500 baseline (13%)',data:spy, borderColor:'#A5A5A5', borderDash:[5,5], tension:.4, borderWidth:1.5}
     ]
-  },options:{plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:14}},
-    tooltip:{callbacks:{label:c=>`${c.dataset.label}: $${c.raw.toLocaleString()}`}}},
-    scales:{y:{ticks:{callback:v=>'$'+v.toLocaleString(),font:{size:9}},grid:{color:'#f0f0f0'}},
-      x:{ticks:{font:{size:10}}}},
-    maintainAspectRatio:false}});
+  }, options:{
+    plugins:{
+      legend:{position:'top', labels:{font:{size:10}, boxWidth:14}},
+      tooltip:{callbacks:{label: c => `${c.dataset.label}: $${c.raw.toLocaleString()}`}}
+    },
+    scales:{
+      y:{ticks:{callback: v => '$' + v.toLocaleString(), font:{size:9}}, grid:{color:'#f0f0f0'}},
+      x:{ticks:{font:{size:10}}}
+    }, maintainAspectRatio:false}});
 }
 
-function updateShares(){
-  const sm=TICKERS.find(d=>d.ticker==='SMH'), qq=TICKERS.find(d=>d.ticker==='QQQM'),
-        sc=TICKERS.find(d=>d.ticker==='SCHG'), vg=TICKERS.find(d=>d.ticker==='VGT'),
-        sp=TICKERS.find(d=>d.ticker==='SPMO'), vx=TICKERS.find(d=>d.ticker==='VXUS');
-  const sh=(amt,p)=>p?`~${(amt/p).toFixed(p>100?2:1)} sh`:'—';
-  document.getElementById('sa1').textContent=sh(520,sm?.price);
-  document.getElementById('sa2').textContent=sh(455,qq?.price);
-  document.getElementById('sa3').textContent=sh(325,sc?.price);
-  document.getElementById('sb1').textContent=sh(390,vg?.price);
-  document.getElementById('sb2').textContent=sh(390,sp?.price);
-  document.getElementById('sb3').textContent=sh(325,vx?.price);
-  document.getElementById('sb4').textContent=sh(195,sc?.price);
+function rebuildAllCharts() {
+  buildAllocChart(); build1yChart(); buildMultiRetChart();
+  buildSectorChart(); buildSectorStack(); buildProjChart();
 }
 
-// Tab logic
-function showTab(id,btn){
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
-  btn.classList.add('active');
+// ─── Planner ──────────────────────────────────────────────────────────────────
+function updatePlan(scenario) {
+  const rows = scenario === 'a'
+    ? [['sa1p','sa1a','sa1s','SMH'],['sa2p','sa2a','sa2s','QQQM'],['sa3p','sa3a','sa3s','SCHG']]
+    : [['sb1p','sb1a','sb1s','VGT'],['sb2p','sb2a','sb2s','SPMO'],['sb3p','sb3a','sb3s','VXUS'],['sb4p','sb4a','sb4s','SCHG']];
+  const deploy = deployAmt();
+  let total = 0;
+  rows.forEach(([pinId, amtId, shId, tkr]) => {
+    const pct = parseFloat(document.getElementById(pinId).value) || 0;
+    total += pct;
+    const amt   = deploy * pct / 100;
+    document.getElementById(amtId).textContent = '$' + Math.round(amt);
+    const price = liveData[tkr]?.price;
+    document.getElementById(shId).textContent  = price ? `~${(amt / price).toFixed(price > 100 ? 2 : 1)} sh` : '—';
+  });
+  const pfx     = scenario === 'a' ? 'planA' : 'planB';
+  const totalEl = document.getElementById(pfx + '-total');
+  const errEl   = document.getElementById(pfx + '-err');
+  const over    = total > 100.001;
+  totalEl.textContent = `Total: ${+total.toFixed(1)}% (Remaining: ${Math.max(0, +(100 - total).toFixed(1))}%)`;
+  totalEl.className   = 'plan-total ' + (over ? 'plan-over' : 'plan-ok');
+  errEl.style.display = over ? 'block' : 'none';
 }
 
-// Add ticker
-function addTicker(){
-  const input=document.getElementById('tickerInput');
-  const raw=input.value.trim().toUpperCase();
-  if(!raw) return;
-  if(TICKERS.find(d=>d.ticker===raw)||CUSTOM.find(d=>d.ticker===raw)){
-    alert(`${raw} is already in your dashboard.`); input.value=''; return;
+// ─── News ─────────────────────────────────────────────────────────────────────
+function renderNews(loading = false) {
+  const container = document.getElementById('newsContainer');
+  const tickers   = tickerList.map(t => t.ticker);
+  document.getElementById('newsSubtitle').textContent =
+    `Latest news for: ${tickers.join(', ')}`;
+  if (loading) {
+    container.innerHTML = '<div class="news-loading">Fetching news for watchlist tickers…</div>';
+    return;
   }
-  CUSTOM.push({ticker:raw,name:'Pending — click Refresh',type:'custom',alloc:0,
-    price:0,chg:0,r1:null,r3:null,r5:null,r10:null,yld:0,exp:0,score:0,pe:null,beta:0,sect:{}});
-  input.value='';
+  if (!newsFeed.length) {
+    container.innerHTML = '<div class="news-empty">No news available. Check your connection or try refreshing.</div>';
+    return;
+  }
+  container.innerHTML = `<div class="news-list">${
+    newsFeed.slice(0, 24).map(n => `
+      <div class="news-item">
+        <a class="news-headline" href="${n.link}" target="_blank" rel="noopener noreferrer">${n.title}</a>
+        <div class="news-meta">
+          <span class="news-tk">${n.ticker}</span>
+          <span>${n.publisher}</span>
+          <span>${fmtAgo(n.time)}</span>
+        </div>
+      </div>`).join('')
+  }</div>`;
+}
+
+// ─── Ticker Management ─────────────────────────────────────────────────────────
+function addTicker() {
+  const input  = document.getElementById('tickerInput');
+  const typeEl = document.getElementById('tickerType');
+  const raw    = input.value.trim().toUpperCase().replace(/[^A-Z0-9.-]/g, '');
+  if (!raw) return;
+  if (tickerList.find(t => t.ticker === raw)) {
+    alert(`${raw} is already in your dashboard.`);
+    input.value = '';
+    return;
+  }
+  tickerList.push({ticker: raw, type: typeEl.value});
+  saveList();
+  input.value = '';
+  liveData[raw] = {loading: true};
   renderCards();
   buildRetTable();
   renderPendingTags();
-  sendPrompt(`Add ${raw} to my Roth IRA dashboard — pull current price, 1Y/3Y/5Y/10Y returns, dividend yield, expense ratio, and sector allocation`);
+  newsLoaded = false;
+  // Fetch data for the newly added ticker
+  fetchSingleTicker(raw);
 }
 
-function renderPendingTags(){
-  document.getElementById('pendingList').innerHTML=CUSTOM.map((d,i)=>
-    `<span class="ptag">${d.ticker} <button onclick="removeTicker(${i})">×</button></span>`
+function removeTicker(ticker) {
+  tickerList = tickerList.filter(t => t.ticker !== ticker);
+  saveList();
+  delete liveData[ticker];
+  newsLoaded = false;
+  renderCards();
+  buildRetTable();
+  renderPendingTags();
+  rebuildAllCharts();
+  // refresh news without the removed ticker
+  const tickers = tickerList.map(t => t.ticker);
+  fetchNewsForTickers(tickers).then(feed => {
+    newsFeed   = feed;
+    newsLoaded = true;
+    renderNews();
+  });
+}
+
+function renderPendingTags() {
+  const custom = tickerList.filter(t => !TICKER_META[t.ticker]);
+  document.getElementById('pendingList').innerHTML = custom.map(t =>
+    `<span class="ptag">${t.ticker}
+       <button onclick="removeTicker('${t.ticker}')" title="Remove ${t.ticker}">×</button>
+     </span>`
   ).join('');
 }
 
-function removeTicker(i){
-  CUSTOM.splice(i,1);
+// ─── Data Loading ──────────────────────────────────────────────────────────────
+async function fetchSingleTicker(ticker) {
+  const ok = await fetchQuotes([ticker]);
   renderCards();
-  buildRetTable();
-  renderPendingTags();
+  if (ok) {
+    const [hist, div] = await Promise.all([
+      fetchHistoricalReturn(ticker),
+      fetchDividend(ticker),
+    ]);
+    if (!liveData[ticker]) liveData[ticker] = {};
+    Object.assign(liveData[ticker], hist, div, {loading: false});
+    renderCards();
+    buildRetTable();
+    rebuildAllCharts();
+  }
 }
 
-// Init
+async function refreshAll() {
+  const tickers = tickerList.map(t => t.ticker);
+  if (!tickers.length) return;
+
+  setStatus('Fetching live prices…');
+  tickers.forEach(t => {
+    if (!liveData[t]) liveData[t] = {};
+    liveData[t].loading = true;
+  });
+  renderCards();
+
+  // Step 1: batch quote fetch
+  const ok = await fetchQuotes(tickers);
+  if (!ok) {
+    setStatus('⚠ Price fetch failed. Check your connection and try refreshing.');
+  } else {
+    setStatus(`Prices loaded · fetching historical returns for ${tickers.length} tickers…`);
+  }
+  renderCards();
+  buildRetTable();
+  rebuildAllCharts();
+
+  // Step 2: historical returns + dividends in parallel
+  await Promise.all(tickers.map(async t => {
+    const [hist, div] = await Promise.all([
+      fetchHistoricalReturn(t),
+      fetchDividend(t),
+    ]);
+    if (!liveData[t]) liveData[t] = {};
+    Object.assign(liveData[t], hist, div, {loading: false});
+  }));
+  renderCards();
+  buildRetTable();
+  rebuildAllCharts();
+  updatePlan('a');
+  updatePlan('b');
+
+  // Step 3: news
+  setStatus('Loading news…');
+  newsFeed   = await fetchNewsForTickers(tickers);
+  newsLoaded = true;
+  renderNews();
+
+  const now = new Date();
+  document.getElementById('lastUpdated').textContent =
+    `Last updated: ${now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${now.toLocaleTimeString()} · Source: Yahoo Finance`;
+  setStatus('');
+}
+
+// ─── Tab Logic ─────────────────────────────────────────────────────────────────
+function showTab(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+
+  if (id === 'news') {
+    if (!newsLoaded) {
+      renderNews(true);
+      const tickers = tickerList.map(t => t.ticker);
+      fetchNewsForTickers(tickers).then(feed => {
+        newsFeed   = feed;
+        newsLoaded = true;
+        renderNews();
+      });
+    } else {
+      renderNews();
+    }
+  }
+}
+
+function onPortChange() {
+  const t   = portVal();
+  const inv = t * (1 - 0.4313);
+  const cash = t * 0.4313;
+  const dep  = deployAmt();
+  document.getElementById('sumPill').textContent =
+    `Invested: ${fmt(inv)} | Cash: ${fmt(cash)} | Deploy: ${fmt(dep)}`;
+  document.getElementById('deployAmt').textContent = fmt(dep);
+  renderCards();
+  updatePlan('a');
+  updatePlan('b');
+}
+
+// stub – kept for compatibility
+function sendPrompt(p) { console.log('[sendPrompt]', p); }
+
+// ─── Init ──────────────────────────────────────────────────────────────────────
 renderCards();
 onPortChange();
-buildAllocChart();
-build1yChart();
 buildRetTable();
-buildMultiRetChart();
-buildSectorChart();
-buildSectorStack();
-buildProjChart();
-updateShares();
+rebuildAllCharts();
+renderPendingTags();
+updatePlan('a');
+updatePlan('b');
+refreshAll();
 </script>
 </body>
 </html>
