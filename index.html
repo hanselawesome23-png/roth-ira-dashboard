@@ -216,7 +216,7 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f7;color:#1a1a2
   <div class="panel" id="tab-returns">
     <div class="cbox" style="margin-bottom:14px">
       <h3>Annualized Returns &amp; Dividend Data</h3>
-      <div style="font-size:11px;color:#888;margin-bottom:12px">Total return (price + dividends reinvested). Dividend data sourced live from Yahoo Finance. "N/A" = fund launched after that period.</div>
+      <div style="font-size:11px;color:#888;margin-bottom:12px">Total return based on Alpaca adjusted market history. Dividend data sourced through the server-side market API. "N/A" = fund launched after that period.</div>
       <div style="overflow-x:auto"><table class="rtable" id="retTable"></table></div>
     </div>
     <div class="cbox">
@@ -506,28 +506,41 @@ function getAllTickers() {
   });
 }
 
-// ─── Yahoo Finance API (with proxy fallback) ──────────────────────────────────
-const PROXIES = [
-  url => url,
-  url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-];
+// ─── Server-side Market API (Alpaca primary, Cloudflare backup) ──────────────
+const MARKET_API_PRIMARY = '/api/market';
+const MARKET_API_BACKUP =
+  window.CLOUDFLARE_MARKET_API_BASE ||
+  localStorage.getItem('cloudflare_market_api_base') ||
+  '';
+let marketSource = 'server';
 
-async function yfFetch(url) {
-  const bust = `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}`;
-  for (const makeUrl of PROXIES) {
+function apiUrl(base, path, params = {}) {
+  const prefix = base.replace(/\/$/, '');
+  const url = /^https?:\/\//i.test(prefix)
+    ? new URL(prefix + path)
+    : new URL(prefix + path, window.location.origin);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value != null && value !== '') url.searchParams.set(key, value);
+  });
+  return url.toString();
+}
+
+async function marketFetch(path, params = {}) {
+  const bases = [MARKET_API_PRIMARY, MARKET_API_BACKUP].filter(Boolean);
+  for (const base of bases) {
     try {
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 9000);
-      const res = await fetch(makeUrl(bust), {
+      const timer = setTimeout(() => ctrl.abort(), 12000);
+      const res = await fetch(apiUrl(base, path, params), {
         cache: 'no-store',
         headers: {'Cache-Control': 'no-cache', 'Pragma': 'no-cache'},
         signal: ctrl.signal
       });
       clearTimeout(timer);
-      if (res.ok) {
-        const text = await res.text();
-        return JSON.parse(text);
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.ok !== false) {
+        marketSource = data.source || (base === MARKET_API_PRIMARY ? 'alpaca-vercel' : 'alpaca-cloudflare');
+        return data;
       }
     } catch {}
   }
@@ -535,10 +548,9 @@ async function yfFetch(url) {
 }
 
 async function fetchQuotes(tickers) {
-  if (!tickers.length) return;
-  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers.join(',')}`;
-  const data = await yfFetch(url);
-  if (!data?.quoteResponse?.result) {
+  if (!tickers.length) return false;
+  const data = await marketFetch('/snapshot', {symbols: tickers.join(',')});
+  if (!data?.symbols) {
     tickers.forEach(t => {
       liveData[t] = {
         ...(liveData[t] || {}),
@@ -548,17 +560,17 @@ async function fetchQuotes(tickers) {
     });
     return false;
   }
-  const returned = new Set();
-  data.quoteResponse.result.forEach(q => {
-    returned.add(q.symbol);
-    if (!liveData[q.symbol]) liveData[q.symbol] = {};
-    const d = liveData[q.symbol];
-    d.price   = q.regularMarketPrice          ?? null;
-    d.chg     = q.regularMarketChangePercent  ?? null;
-    d.beta    = q.beta                        ?? null;
-    d.pe      = q.trailingPE                  ?? null;
-    d.yld     = q.trailingAnnualDividendYield != null ? +(q.trailingAnnualDividendYield * 100).toFixed(2) : null;
-    d.name    = q.longName || q.shortName     || d.name;
+  const returned = new Set(Object.keys(data.symbols));
+  Object.entries(data.symbols).forEach(([symbol, q]) => {
+    if (!liveData[symbol]) liveData[symbol] = {};
+    const d = liveData[symbol];
+    d.price   = q.price                       ?? null;
+    d.chg     = q.changePercent               ?? null;
+    d.beta    = null;
+    d.pe      = null;
+    d.name    = d.name || TICKER_META[symbol]?.name || symbol;
+    d.latestTradeTime = q.latestTradeTime || null;
+    d.volume = q.volume ?? null;
     d.loading = false;
     d.unavailable = d.price == null;
   });
@@ -573,88 +585,50 @@ async function fetchQuotes(tickers) {
 }
 
 async function fetchHistoricalReturn(ticker) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1mo&range=10y`;
-  const data = await yfFetch(url);
-  if (!data?.chart?.result?.[0]) return {r1: 'unavailable', r3: 'unavailable', r5: 'unavailable', r10: 'unavailable'};
-  const res     = data.chart.result[0];
-  const closes  = res.indicators?.adjclose?.[0]?.adjclose || res.indicators?.quote?.[0]?.close || [];
-  const valid   = closes.map((v, i) => ({v, i})).filter(x => x.v != null);
-  if (valid.length < 2) return {r1: 'unavailable', r3: 'unavailable', r5: 'unavailable', r10: 'unavailable'};
-  const last    = valid[valid.length - 1].v;
-  const n       = valid.length;
-
-  const calc = months => {
-    // find close ~`months` months back from end
-    const target = n - 1 - months;
-    if (target < 0) return null;
-    // find nearest valid index at or before target
-    const candidates = valid.filter(x => x.i <= Math.min(target + 3, n - 1) && x.i >= Math.max(target - 3, 0));
-    if (!candidates.length) return null;
-    const base = candidates.reduce((a, b) => Math.abs(a.i - target) < Math.abs(b.i - target) ? a : b).v;
-    if (!base || base <= 0) return null;
-    const total = (last - base) / base;
-    if (months <= 12) return +((total * 100).toFixed(1));
-    const years = months / 12;
-    return +((( Math.pow(1 + total, 1 / years) - 1) * 100).toFixed(1));
+  const data = await marketFetch('/history', {symbol: ticker, range: '10y'});
+  if (!data?.returns) return {r1: 'unavailable', r3: 'unavailable', r5: 'unavailable', r10: 'unavailable'};
+  return {
+    r1: data.returns.r1 ?? null,
+    r3: data.returns.r3 ?? null,
+    r5: data.returns.r5 ?? null,
+    r10: data.returns.r10 ?? null,
   };
-
-  return {r1: calc(12), r3: calc(36), r5: calc(60), r10: calc(120)};
 }
 
 async function fetchDividend(ticker) {
-  const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=summaryDetail,calendarEvents`;
-  const data = await yfFetch(url);
-  if (!data?.quoteSummary?.result?.[0]) return {divRate: undefined, divYield: null, divFreq: null, exDate: null, payDate: null, divUnavailable: true};
-  const sd = data.quoteSummary.result[0].summaryDetail   || {};
-  const ce = data.quoteSummary.result[0].calendarEvents  || {};
-  const rate = sd.dividendRate?.raw ?? null;
-  const rawYield = sd.dividendYield?.raw ?? null;
-  const yld  = rawYield != null ? +(rawYield * 100).toFixed(2) : null;
+  const dividends = await fetchDividends([ticker]);
+  return dividends[ticker] || {divRate: undefined, divYield: null, divFreq: null, exDate: null, payDate: null, divUnavailable: true};
+}
 
-  let freq = null;
-  if (rate && rate > 0) {
-    const price = liveData[ticker]?.price || 0;
-    if (price > 0) {
-      const perPmt = rate / price;
-      freq = perPmt < 0.005 ? 'Monthly' : perPmt < 0.018 ? 'Quarterly' : 'Semi-annual';
-    } else {
-      freq = 'Quarterly';
-    }
+async function fetchDividends(tickers) {
+  if (!tickers.length) return {};
+  const data = await marketFetch('/dividends', {symbols: tickers.join(',')});
+  if (!data?.symbols) {
+    return Object.fromEntries(tickers.map(t => [t, {
+      divRate: undefined, divYield: null, divFreq: null, exDate: null, payDate: null, divUnavailable: true,
+    }]));
   }
-
-  return {
-    divRate:  rate != null ? +rate.toFixed(2) : null,
-    divYield: yld,
-    divFreq:  freq,
-    exDate:   sd.exDividendDate?.fmt  || null,
-    payDate:  ce.dividendDate?.fmt    || null,
-    divUnavailable: false,
-  };
+  return Object.fromEntries(tickers.map(t => {
+    const div = data.symbols[t];
+    if (!div) return [t, {divRate: undefined, divYield: null, divFreq: null, exDate: null, payDate: null, divUnavailable: true}];
+    return [t, {
+      divRate: div.paysDividend ? div.amount : null,
+      divYield: div.yield ?? null,
+      divFreq: div.frequency || null,
+      exDate: div.exDate || null,
+      payDate: div.payDate || null,
+      divUnavailable: false,
+    }];
+  }));
 }
 
 async function fetchNewsForTickers(tickers) {
-  const seen  = new Set();
-  const items = [];
-  // fetch news for each ticker (cap at 8 tickers to avoid rate limits)
-  for (const tkr of tickers.slice(0, 8)) {
-    const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${tkr}&newsCount=4&quotesCount=0`;
-    const data = await yfFetch(url);
-    if (!data?.news) continue;
-    for (const n of data.news) {
-      if (seen.has(n.uuid)) continue;
-      seen.add(n.uuid);
-      items.push({
-        uuid:      n.uuid,
-        title:     n.title,
-        publisher: n.publisher,
-        link:      n.link,
-        time:      n.providerPublishTime,
-        ticker:    tkr,
-      });
-    }
-  }
-  items.sort((a, b) => b.time - a.time);
-  return items;
+  const data = await marketFetch('/news', {symbols: tickers.slice(0, 8).join(',')});
+  return data?.items || [];
+}
+
+async function fetchMarketStatus() {
+  return await marketFetch('/status');
 }
 
 // ─── Render: Cards ────────────────────────────────────────────────────────────
@@ -1057,11 +1031,11 @@ async function refreshAll() {
   rebuildAllCharts();
 
   // Step 2: historical returns + dividends in parallel
+  const dividendMapPromise = fetchDividends(tickers);
   await Promise.all(tickers.map(async t => {
-    const [hist, div] = await Promise.all([
-      fetchHistoricalReturn(t),
-      fetchDividend(t),
-    ]);
+    const hist = await fetchHistoricalReturn(t);
+    const dividendMap = await dividendMapPromise;
+    const div = dividendMap[t] || {divRate: undefined, divYield: null, divFreq: null, exDate: null, payDate: null, divUnavailable: true};
     if (!liveData[t]) liveData[t] = {};
     Object.assign(liveData[t], hist, div, {loading: false});
   }));
@@ -1079,9 +1053,11 @@ async function refreshAll() {
   newsLoaded = true;
   renderNews();
 
+  const status = await fetchMarketStatus();
+  const marketNote = status?.isOpen === true ? 'Market open' : status?.isOpen === false ? 'Market closed' : 'Market status unavailable';
   const now = new Date();
   document.getElementById('lastUpdated').textContent =
-    `Last updated: ${now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${now.toLocaleTimeString()} · Source: Yahoo Finance`;
+    `Last updated: ${now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${now.toLocaleTimeString()} · Source: ${marketSource} · ${marketNote}`;
   if (refreshBtn) refreshBtn.disabled = false;
   setStatus('');
 }
